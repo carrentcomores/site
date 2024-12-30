@@ -250,6 +250,74 @@ app.post('/submit', upload.fields([
 // Serve static files from the uploads directory
 app.use('/uploads', express.static('uploads'));
 
+// Admin authentication middleware
+const authenticateAdmin = (req, res, next) => {
+    const adminKey = process.env.ADMIN_KEY || 'CarRental269@';
+    const providedKey = req.query.key;
+
+    if (!providedKey || providedKey !== adminKey) {
+        return res.status(401).json({ 
+            error: 'Unauthorized', 
+            message: 'Invalid or missing admin key' 
+        });
+    }
+    next();
+};
+
+// Download Excel file endpoint
+app.get('/download-reservations', authenticateAdmin, (req, res) => {
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    
+    try {
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({
+                error: 'Not Found',
+                message: 'No reservations file exists yet'
+            });
+        }
+
+        const fileName = `reservations-${new Date().toISOString().split('T')[0]}.xlsx`;
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Error downloading reservations file'
+        });
+    }
+});
+
+// List all reservations endpoint
+app.get('/list-reservations', authenticateAdmin, (req, res) => {
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    
+    try {
+        if (!fs.existsSync(filePath)) {
+            return res.json({ reservations: [] });
+        }
+
+        const workbook = XLSX.readFile(filePath);
+        const worksheet = workbook.Sheets['Reservations'];
+        const reservations = XLSX.utils.sheet_to_json(worksheet);
+
+        res.json({ 
+            total: reservations.length,
+            reservations: reservations
+        });
+    } catch (error) {
+        console.error('Error reading reservations:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Error reading reservations'
+        });
+    }
+});
+
 // Error handling for 404
 app.use((req, res) => {
     res.status(404).json({
