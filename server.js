@@ -122,12 +122,13 @@ const getExcelFilePath = () => {
 const authenticateAdmin = (req, res, next) => {
     console.log('Auth request received');
     const adminKey = process.env.ADMIN_KEY || DEFAULT_ADMIN_KEY;
-    const providedKey = req.query.key;
+    // Check for key in query params or request body
+    const providedKey = req.query.key || (req.body && req.body.key);
 
-    console.log('Authenticating with:', providedKey);
+    console.log('Authenticating with key:', providedKey);
     
     if (!providedKey || providedKey !== adminKey) {
-        console.log('Authentication failed');
+        console.log('Authentication failed - Invalid key');
         return res.status(401).json({
             success: false,
             message: 'Invalid admin key'

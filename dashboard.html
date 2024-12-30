@@ -176,7 +176,7 @@
         });
 
         async function loadDashboard() {
-            const inputKey = document.getElementById('adminKey').value;
+            const inputKey = document.getElementById('adminKey').value || sessionStorage.getItem('adminKey');
             if (!inputKey) {
                 alert('Please enter the admin key');
                 return;
@@ -184,16 +184,9 @@
 
             try {
                 document.getElementById('loadingSpinner').style.display = 'block';
-                console.log('Checking authentication...');
+                console.log('Loading dashboard...');
 
                 // First verify the key
-                const authResponse = await fetch(`${BASE_URL}/auth-check?key=${encodeURIComponent(inputKey)}`);
-                if (!authResponse.ok) {
-                    const errorData = await authResponse.json();
-                    throw new Error(errorData.message || 'Invalid admin key');
-                }
-
-                console.log('Authentication successful, loading reservations...');
                 const response = await fetch(`${BASE_URL}/list-reservations?key=${encodeURIComponent(inputKey)}`);
                 
                 if (!response.ok) {
@@ -202,6 +195,8 @@
                 }
 
                 const data = await response.json();
+                console.log('Received data:', data);
+
                 if (!data.success) {
                     throw new Error(data.message || 'Failed to load reservations');
                 }
@@ -278,19 +273,19 @@
                 document.getElementById('loadingSpinner').style.display = 'block';
                 
                 console.log('Updating status:', { id, status });
-                const response = await fetch(`${BASE_URL}/update-status`, {
+                const response = await fetch(`${BASE_URL}/update-status?key=${encodeURIComponent(key)}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         id: id,
-                        status: status,
-                        key: key
+                        status: status
                     })
                 });
 
                 const data = await response.json();
+                console.log('Update response:', data);
                 
                 if (!response.ok || !data.success) {
                     throw new Error(data.message || 'Failed to update status');
