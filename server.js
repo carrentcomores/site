@@ -192,6 +192,58 @@ app.get('/list-reservations', authenticateAdmin, (req, res) => {
     }
 });
 
+// Update reservation status endpoint
+app.post('/update-status', authenticateAdmin, async (req, res) => {
+    const { id, status } = req.body;
+    console.log('Updating status for reservation:', id, 'to:', status);
+
+    try {
+        const filePath = getExcelFilePath();
+        if (!fsSync.existsSync(filePath)) {
+            throw new Error('Reservations file not found');
+        }
+
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = 'Reservations';
+        
+        if (!workbook.Sheets[sheetName]) {
+            throw new Error('Reservations sheet not found');
+        }
+
+        // Convert sheet to JSON
+        let reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        
+        // Find and update the reservation
+        const reservationIndex = reservations.findIndex(r => r.id === id);
+        if (reservationIndex === -1) {
+            throw new Error('Reservation not found');
+        }
+
+        // Update the status
+        reservations[reservationIndex].status = status;
+
+        // Convert back to sheet
+        const newSheet = XLSX.utils.json_to_sheet(reservations);
+        workbook.Sheets[sheetName] = newSheet;
+
+        // Write back to file
+        XLSX.writeFile(workbook, filePath);
+
+        console.log('Status updated successfully');
+        res.json({ 
+            success: true, 
+            message: 'Status updated successfully' 
+        });
+
+    } catch (error) {
+        console.error('Error updating status:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error updating status: ' + error.message 
+        });
+    }
+});
+
 // Root route - serve index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

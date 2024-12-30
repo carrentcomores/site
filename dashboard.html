@@ -267,16 +267,62 @@
             }
         });
 
+        async function updateStatus(id, status) {
+            const key = sessionStorage.getItem('adminKey');
+            if (!key) {
+                alert('Please login again');
+                return;
+            }
+
+            try {
+                document.getElementById('loadingSpinner').style.display = 'block';
+                
+                console.log('Updating status:', { id, status });
+                const response = await fetch(`${BASE_URL}/update-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        status: status,
+                        key: key
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to update status');
+                }
+
+                // Show success message
+                alert('Status updated successfully');
+                
+                // Refresh the dashboard
+                await loadDashboard();
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('Failed to update status: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+        }
+
         function populateReservationsTable(reservations) {
             const tableBody = document.getElementById('reservationsTableBody');
             tableBody.innerHTML = '';
 
-            reservations.forEach(reservation => {
+            reservations.forEach((reservation, index) => {
                 const row = document.createElement('tr');
                 
                 // Format dates
                 const pickupDate = new Date(reservation.pickupDate).toLocaleDateString();
                 const returnDate = new Date(reservation.returnDate).toLocaleDateString();
+
+                // Generate a unique ID if none exists
+                const reservationId = reservation.id || `reservation-${index}`;
 
                 row.innerHTML = `
                     <td>${reservation.firstName || '-'}</td>
@@ -287,11 +333,19 @@
                     <td>${returnDate}</td>
                     <td>
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-sm btn-success" onclick="updateStatus('${reservation.id}', 'Confirmed')">Confirm</button>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="updateStatus('${reservation.id}', 'Cancelled')">Cancel</button>
+                            <button type="button" class="btn btn-sm btn-success" onclick="updateStatus('${reservationId}', 'Confirmed')">Confirm</button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="updateStatus('${reservationId}', 'Cancelled')">Cancel</button>
                         </div>
                     </td>
                 `;
+
+                // Add status-based styling
+                if (reservation.status === 'Confirmed') {
+                    row.classList.add('table-success');
+                } else if (reservation.status === 'Cancelled') {
+                    row.classList.add('table-danger');
+                }
+
                 tableBody.appendChild(row);
             });
         }
@@ -323,39 +377,6 @@
             document.getElementById('activeRentals').textContent = activeRentals;
             document.getElementById('upcomingPickups').textContent = upcomingPickups;
             document.getElementById('returnsToday').textContent = returnsToday;
-        }
-
-        async function updateStatus(id, status) {
-            const key = sessionStorage.getItem('adminKey');
-            if (!key) {
-                alert('Please login again');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BASE_URL}/update-status`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        id: id,
-                        status: status,
-                        key: key
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to update status');
-                }
-
-                // Refresh the dashboard
-                loadDashboard();
-                
-            } catch (error) {
-                console.error('Error updating status:', error);
-                alert('Failed to update status: ' + error.message);
-            }
         }
     </script>
 </body>
