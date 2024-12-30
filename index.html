@@ -205,7 +205,7 @@
             ensuring that your preferred vehicle is ready and waiting for you at the time of your reservation. 
             By completing this form, you guarantee that the car will be prepared and available, 
             providing a smooth and hassle-free experience when you arrive.</div>
-        <form id="reservationForm" onsubmit="return validateForm(event)">
+        <form id="reservationForm">
             <!-- Personal Information -->
             <div class="form-section">
                 <h2>Personal Information</h2>
@@ -295,7 +295,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="submit-btn">Submit Reservation</button>
+            <button type="submit" id="submitBtn" class="submit-btn">Submit</button>
         </form>
     </div>
     <script>
@@ -310,7 +310,7 @@
             const pickupLocationRadios = document.getElementsByName('pickupLocation');
             const specificLocationGroup = document.getElementById('specificLocationGroup');
             const specificLocation = document.getElementById('specificLocation');
-            const submitButton = document.querySelector('.submit-btn');
+            const submitButton = document.getElementById('submitBtn');
 
             // Set minimum date for pickup date (current date)
             const today = new Date();
@@ -338,145 +338,98 @@
                 }
             });
 
-            // Form validation and submission
-            async function validateForm(event) {
+            // Form submission handling
+            async function handleSubmit(event) {
                 event.preventDefault();
-                let isValid = true;
+                const submitButton = document.getElementById('submitBtn');
+                const form = event.target;
 
-                // Validate file types
-                const passport = document.getElementById('passport');
-                const license = document.getElementById('license');
-                
-                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
-                
-                if (!allowedTypes.includes(passport.files[0]?.type)) {
-                    showError(passport, 'Please upload a PDF or JPEG file for passport');
-                    isValid = false;
-                }
-                
-                if (!allowedTypes.includes(license.files[0]?.type)) {
-                    showError(license, 'Please upload a PDF or JPEG file for license');
-                    isValid = false;
-                }
+                try {
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
 
-                // Validate dates
-                const pickupDateTime = new Date(pickupDate.value);
-                const returnDateTime = new Date(returnDate.value);
-                const currentDate = new Date();
+                    // Get form field values directly from elements
+                    const firstName = document.getElementById('firstName').value.trim();
+                    const lastName = document.getElementById('lastName').value.trim();
+                    const birthday = document.getElementById('birthday').value;
+                    const phone = document.getElementById('phone').value.trim();
+                    const address = document.getElementById('address').value.trim();
+                    const neighbourhood = document.getElementById('neighbourhood').value.trim();
+                    const budget = document.getElementById('budget').value.trim();
+                    const pickupDateValue = pickupDate.value;
+                    const returnDateValue = returnDate.value;
+                    const pickupLocation = document.getElementById('pickupLocation').value.trim();
+                    const specificLocation = document.getElementById('specificLocation').value.trim();
 
-                if (pickupDateTime < currentDate) {
-                    showError(pickupDate, 'Pickup date cannot be in the past');
-                    isValid = false;
-                }
-
-                if (returnDateTime < pickupDateTime) {
-                    showError(returnDate, 'Return date must be after pickup date');
-                    isValid = false;
-                }
-
-                // Validate specific location if selected
-                if (document.getElementById('specific').checked && !specificLocation.value.trim()) {
-                    showError(specificLocation, 'Please enter a specific pickup location');
-                    isValid = false;
-                }
-
-                if (isValid) {
-                    try {
-                        // Disable submit button and show loading state
-                        submitButton.disabled = true;
-                        submitButton.textContent = 'Submitting...';
-
-                        // Format dates properly
-                        const formatDateForSubmission = (dateString) => {
-                            try {
-                                const date = new Date(dateString);
-                                if (isNaN(date.getTime())) {
-                                    throw new Error('Invalid date');
-                                }
-                                return date.toISOString();
-                            } catch (error) {
-                                console.error('Date formatting error:', error);
-                                return '';
-                            }
-                        };
-
-                        // Update date fields with proper formatting
-                        const birthday = document.getElementById('birthday').value;
-                        const pickupDateValue = pickupDate.value;
-                        const returnDateValue = returnDate.value;
-
-                        const formattedBirthday = formatDateForSubmission(birthday);
-                        const formattedPickupDate = formatDateForSubmission(pickupDateValue);
-                        const formattedReturnDate = formatDateForSubmission(returnDateValue);
-
-                        // Create FormData object to send files
-                        const formData = new FormData(form);
-                        formData.set('birthday', formattedBirthday);
-                        formData.set('pickupDate', formattedPickupDate);
-                        formData.set('returnDate', formattedReturnDate);
-
-                        // Send data to server
-                        const response = await fetch(`${API_URL}/submit`, {
-                            method: 'POST',
-                            body: formData,
-                            mode: 'cors',
-                            credentials: 'omit',
-                            headers: {
-                                'Accept': 'application/json'
-                            }
-                        });
-
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error('Server response:', errorText);
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            alert('Reservation submitted successfully!');
-                            form.reset();
-                        } else {
-                            throw new Error(data.message || 'Error submitting reservation');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error submitting reservation. Please try again later.');
-                    } finally {
-                        // Re-enable submit button
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Submit Reservation';
+                    // Validate required fields
+                    if (!firstName || !lastName || !birthday || !phone || !address || 
+                        !neighbourhood || !budget || !pickupDateValue || !returnDateValue || !pickupLocation) {
+                        throw new Error('Please fill in all required fields');
                     }
-                }
 
-                return false;
+                    // Format dates
+                    const formatDateForSubmission = (dateString) => {
+                        try {
+                            const date = new Date(dateString);
+                            if (isNaN(date.getTime())) {
+                                throw new Error('Invalid date');
+                            }
+                            return date.toISOString();
+                        } catch (error) {
+                            console.error('Date formatting error:', error);
+                            throw new Error('Invalid date format');
+                        }
+                    };
+
+                    // Create FormData and set values
+                    const formData = new FormData(form);
+                    formData.set('firstName', firstName);
+                    formData.set('lastName', lastName);
+                    formData.set('birthday', formatDateForSubmission(birthday));
+                    formData.set('phone', phone);
+                    formData.set('address', address);
+                    formData.set('neighbourhood', neighbourhood);
+                    formData.set('budget', budget);
+                    formData.set('pickupDate', formatDateForSubmission(pickupDateValue));
+                    formData.set('returnDate', formatDateForSubmission(returnDateValue));
+                    formData.set('pickupLocation', pickupLocation);
+                    formData.set('specificLocation', specificLocation);
+
+                    // Log form data for debugging
+                    for (let [key, value] of formData.entries()) {
+                        console.log(`${key}: ${value}`);
+                    }
+
+                    const response = await fetch(`${API_URL}/submit`, {
+                        method: 'POST',
+                        body: formData,
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Submission failed');
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        form.reset();
+                        alert('Reservation submitted successfully!');
+                    } else {
+                        throw new Error(data.message || 'Submission failed');
+                    }
+                } catch (error) {
+                    console.error('Submission error:', error);
+                    alert(error.message || 'An error occurred during submission');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit';
+                }
             }
 
-            function showError(element, message) {
-                element.classList.add('error');
-                
-                // Remove existing error message if any
-                const existingError = element.parentElement.querySelector('.error-message');
-                if (existingError) {
-                    existingError.remove();
-                }
-                
-                // Add new error message
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = message;
-                element.parentElement.appendChild(errorDiv);
-
-                // Remove error class after 3 seconds
-                setTimeout(() => {
-                    element.classList.remove('error');
-                    errorDiv.remove();
-                }, 3000);
-            }
-
-            // Attach form validation to form submit
-            form.addEventListener('submit', validateForm);
+            // Attach form submission handling to form submit
+            form.addEventListener('submit', handleSubmit);
         });
     </script>
 </body>

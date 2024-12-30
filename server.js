@@ -224,6 +224,10 @@ app.post('/submit', upload.fields([
     { name: 'license', maxCount: 1 }
 ]), async (req, res) => {
     try {
+        // Log incoming request data for debugging
+        console.log('Received form data:', req.body);
+        console.log('Received files:', req.files);
+
         if (!req.files || !req.files.passport || !req.files.license) {
             return res.status(400).json({ 
                 success: false, 
@@ -231,59 +235,67 @@ app.post('/submit', upload.fields([
             });
         }
 
-        // Format dates properly
-        const formatDate = (dateString) => {
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) {
-                    throw new Error('Invalid date');
-                }
-                return date.toISOString();
-            } catch (error) {
-                console.error('Date parsing error:', error);
-                return null;
+        // Basic data validation
+        const validateField = (field, name) => {
+            if (!field || field.trim() === '') {
+                throw new Error(`${name} is required`);
             }
+            return field.trim();
         };
 
         const formData = {
-            firstName: req.body.firstName,
-            lastName: req.body.lastName,
-            birthday: formatDate(req.body.birthday),
-            phone: req.body.phone,
-            address: req.body.address,
-            neighbourhood: req.body.neighbourhood,
-            budget: req.body.budget,
-            pickupDate: formatDate(req.body.pickupDate),
-            returnDate: formatDate(req.body.returnDate),
-            pickupLocation: req.body.pickupLocation,
+            firstName: validateField(req.body.firstName, 'First name'),
+            lastName: validateField(req.body.lastName, 'Last name'),
+            phone: validateField(req.body.phone, 'Phone number'),
+            address: validateField(req.body.address, 'Address'),
+            neighbourhood: validateField(req.body.neighbourhood, 'Neighbourhood'),
+            budget: validateField(req.body.budget, 'Budget'),
+            pickupLocation: validateField(req.body.pickupLocation, 'Pickup location'),
             specificLocation: req.body.specificLocation || '',
-            submissionDate: new Date().toISOString(),
             passportFile: req.files.passport[0].filename,
             licenseFile: req.files.license[0].filename
         };
 
-        // Validate all required fields
-        const requiredFields = ['firstName', 'lastName', 'birthday', 'phone', 'address', 
-                              'neighbourhood', 'budget', 'pickupDate', 'returnDate', 'pickupLocation'];
-        
-        for (const field of requiredFields) {
-            if (!formData[field]) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Invalid or missing ${field}`
-                });
+        // Date validation and formatting
+        const validateDate = (dateString, fieldName) => {
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    throw new Error(`Invalid ${fieldName}`);
+                }
+                return date.toISOString();
+            } catch (error) {
+                throw new Error(`Invalid ${fieldName}`);
             }
+        };
+
+        formData.birthday = validateDate(req.body.birthday, 'birthday');
+        formData.pickupDate = validateDate(req.body.pickupDate, 'pickup date');
+        formData.returnDate = validateDate(req.body.returnDate, 'return date');
+        formData.submissionDate = new Date().toISOString();
+
+        // Additional date validations
+        const pickup = new Date(formData.pickupDate);
+        const returnDate = new Date(formData.returnDate);
+        const now = new Date();
+
+        if (pickup < now) {
+            throw new Error('Pickup date cannot be in the past');
         }
+
+        if (returnDate < pickup) {
+            throw new Error('Return date must be after pickup date');
+        }
+
+        console.log('Processed form data:', formData);
 
         await updateExcelFile(formData);
         res.json({ success: true, message: 'Data saved successfully' });
     } catch (error) {
-        console.error('Error saving data:', error);
-        res.status(500).json({ 
+        console.error('Error processing submission:', error);
+        res.status(400).json({ 
             success: false, 
-            message: process.env.NODE_ENV === 'production'
-                ? 'Error processing your request'
-                : error.message
+            message: error.message || 'Error processing your request'
         });
     }
 });
