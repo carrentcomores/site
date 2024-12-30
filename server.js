@@ -1,3 +1,13 @@
+// Load environment variables
+require('dotenv').config();
+
+// Constants and Configuration
+const DEFAULT_ADMIN_KEY = process.env.ADMIN_KEY || 'CarRental269@';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
+const EXCEL_FILE = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+const PORT = process.env.PORT || 3000;
+
+// Express setup
 const express = require('express');
 const multer = require('multer');
 const XLSX = require('xlsx');
@@ -8,17 +18,31 @@ const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://carrentcomores.site', 'https://www.carrentcomores.site']
+        : '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: false
+}));
+
+// Serve static files
+app.use(express.static('public'));
+app.use('/uploads', express.static('uploads'));
 
 // Initialize uploads directory
-const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
-if (!fsSync.existsSync(uploadsDir)) {
-    fsSync.mkdirSync(uploadsDir, { recursive: true });
-    console.log('Created uploads directory:', uploadsDir);
+if (!fsSync.existsSync(UPLOAD_DIR)) {
+    fsSync.mkdirSync(UPLOAD_DIR, { recursive: true });
+    console.log('Created uploads directory:', UPLOAD_DIR);
 }
 
 // Ensure Excel file directory exists
-const excelFilePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+const excelFilePath = path.join(UPLOAD_DIR, EXCEL_FILE);
 const excelDir = path.dirname(excelFilePath);
 if (!fsSync.existsSync(excelDir)) {
     fsSync.mkdirSync(excelDir, { recursive: true });
@@ -53,10 +77,9 @@ app.use((req, res, next) => {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: async function (req, file, cb) {
-        const uploadDir = process.env.UPLOAD_DIR || 'uploads';
         try {
-            await fs.mkdir(uploadDir, { recursive: true });
-            cb(null, uploadDir);
+            await fs.mkdir(UPLOAD_DIR, { recursive: true });
+            cb(null, UPLOAD_DIR);
         } catch (error) {
             cb(error);
         }
@@ -84,8 +107,88 @@ const upload = multer({
     }
 });
 
-// Serve static files
-app.use(express.static('public'));
+// Admin authentication middleware
+const authenticateAdmin = (req, res, next) => {
+    console.log('Auth request received');
+    const adminKey = process.env.ADMIN_KEY || DEFAULT_ADMIN_KEY;
+    const providedKey = req.query.key;
+
+    console.log('Authenticating with:', providedKey);
+    
+    if (!providedKey || providedKey !== adminKey) {
+        console.log('Authentication failed');
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid admin key'
+        });
+    }
+
+    console.log('Authentication successful');
+    next();
+};
+
+// Function to get Excel file path
+const getExcelFilePath = () => {
+    // If EXCEL_FILE is an absolute path, use it directly
+    if (path.isAbsolute(EXCEL_FILE)) {
+        return EXCEL_FILE;
+    }
+    // Otherwise, resolve it relative to the project root
+    return path.join(__dirname, EXCEL_FILE);
+};
+
+// Admin Routes
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/auth-check', authenticateAdmin, (req, res) => {
+    res.json({ success: true });
+});
+
+app.get('/list-reservations', authenticateAdmin, (req, res) => {
+    const filePath = getExcelFilePath();
+    console.log('Reading reservations from:', filePath);
+
+    try {
+        if (!fsSync.existsSync(filePath)) {
+            console.log('No reservations file exists at:', filePath);
+            return res.json({
+                success: true,
+                total: 0,
+                reservations: []
+            });
+        }
+
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = 'Reservations';
+
+        if (!workbook.Sheets[sheetName]) {
+            console.log('No Reservations sheet found in workbook');
+            return res.json({
+                success: true,
+                total: 0,
+                reservations: []
+            });
+        }
+
+        const reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        console.log(`Found ${reservations.length} reservations`);
+
+        res.json({
+            success: true,
+            total: reservations.length,
+            reservations: reservations
+        });
+
+    } catch (error) {
+        console.error('Error reading reservations:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error reading reservations: ' + error.message
+        });
+    }
+});
 
 // Root route
 app.get('/', (req, res) => {
@@ -137,7 +240,7 @@ function releaseLock() {
 
 // Function to update Excel file
 async function updateExcelFile(newData) {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    const filePath = getExcelFilePath();
     console.log('Using Excel file path:', filePath);
     
     let workbook;
@@ -145,10 +248,9 @@ async function updateExcelFile(newData) {
 
     try {
         // Ensure the uploads directory exists
-        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
-        if (!fsSync.existsSync(uploadsDir)) {
-            console.log('Creating uploads directory:', uploadsDir);
-            fsSync.mkdirSync(uploadsDir, { recursive: true });
+        if (!fsSync.existsSync(UPLOAD_DIR)) {
+            console.log('Creating uploads directory:', UPLOAD_DIR);
+            fsSync.mkdirSync(UPLOAD_DIR, { recursive: true });
         }
 
         // Check if file exists and read existing data
@@ -334,26 +436,9 @@ app.post('/submit', upload.fields([
     }
 });
 
-// Serve static files from the uploads directory
-app.use('/uploads', express.static('uploads'));
-
-// Admin authentication middleware
-const authenticateAdmin = (req, res, next) => {
-    const adminKey = process.env.ADMIN_KEY || 'CarRental269@';
-    const providedKey = req.query.key;
-
-    if (!providedKey || providedKey !== adminKey) {
-        return res.status(401).json({ 
-            error: 'Unauthorized', 
-            message: 'Invalid or missing admin key' 
-        });
-    }
-    next();
-};
-
 // Download Excel file endpoint
 app.get('/download-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    const filePath = getExcelFilePath();
     
     try {
         if (!fsSync.existsSync(filePath)) {
@@ -363,15 +448,13 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
             });
         }
 
-        // Read the file into a buffer
         const fileBuffer = fsSync.readFileSync(filePath);
+        const fileName = `reservations-${new Date().toISOString().split('T')[0]}.xlsx`;
         
-        // Set response headers
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="reservations-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Length', fileBuffer.length);
         
-        // Send the file buffer
         res.send(fileBuffer);
 
     } catch (error) {
@@ -379,35 +462,6 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
         res.status(500).json({
             error: 'Internal Server Error',
             message: 'Error downloading reservations file'
-        });
-    }
-});
-
-// List all reservations endpoint
-app.get('/list-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
-    
-    try {
-        if (!fsSync.existsSync(filePath)) {
-            return res.json({ 
-                total: 0,
-                reservations: [] 
-            });
-        }
-
-        const workbook = XLSX.readFile(filePath);
-        const worksheet = workbook.Sheets['Reservations'];
-        const reservations = XLSX.utils.sheet_to_json(worksheet);
-
-        res.json({ 
-            total: reservations.length,
-            reservations: reservations
-        });
-    } catch (error) {
-        console.error('Error reading reservations:', error);
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Error reading reservations'
         });
     }
 });
@@ -432,6 +486,6 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
