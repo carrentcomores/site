@@ -135,14 +135,12 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
+                                        <th>First Name</th>
+                                        <th>Last Name</th>
                                         <th>Phone</th>
-                                        <th>Email</th>
-                                        <th>Car Type</th>
+                                        <th>Budget</th>
                                         <th>Pickup Date</th>
                                         <th>Return Date</th>
-                                        <th>Submission Date</th>
-                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -269,32 +267,6 @@
             }
         });
 
-        function updateDashboardStats(reservations) {
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            
-            const active = reservations.filter(r => {
-                const pickup = new Date(r.pickupDate);
-                const returnDate = new Date(r.returnDate);
-                return pickup <= now && returnDate >= now;
-            }).length;
-
-            const upcoming = reservations.filter(r => {
-                const pickup = new Date(r.pickupDate);
-                return pickup > now;
-            }).length;
-
-            const returningToday = reservations.filter(r => {
-                const returnDate = new Date(r.returnDate);
-                return returnDate >= today && returnDate < new Date(today.getTime() + 24*60*60*1000);
-            }).length;
-
-            document.getElementById('totalReservations').textContent = reservations.length;
-            document.getElementById('activeRentals').textContent = active;
-            document.getElementById('upcomingPickups').textContent = upcoming;
-            document.getElementById('returnsToday').textContent = returningToday;
-        }
-
         function populateReservationsTable(reservations) {
             const tableBody = document.getElementById('reservationsTableBody');
             tableBody.innerHTML = '';
@@ -305,91 +277,86 @@
                 // Format dates
                 const pickupDate = new Date(reservation.pickupDate).toLocaleDateString();
                 const returnDate = new Date(reservation.returnDate).toLocaleDateString();
-                const submissionDate = new Date(reservation.submissionDate).toLocaleDateString();
 
                 row.innerHTML = `
-                    <td>${reservation.name || '-'}</td>
+                    <td>${reservation.firstName || '-'}</td>
+                    <td>${reservation.lastName || '-'}</td>
                     <td>${reservation.phone || '-'}</td>
-                    <td>${reservation.email || '-'}</td>
-                    <td>${reservation.carType || '-'}</td>
+                    <td>${reservation.budget || '-'}</td>
                     <td>${pickupDate}</td>
                     <td>${returnDate}</td>
-                    <td>${submissionDate}</td>
-                    <td>${reservation.status || 'Pending'}</td>
                     <td>
-                        <button class="btn btn-sm btn-info" onclick="viewDetails(${reservation.id})">
-                            <i class="bi bi-eye"></i>
-                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-success" onclick="updateStatus('${reservation.id}', 'Confirmed')">Confirm</button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="updateStatus('${reservation.id}', 'Cancelled')">Cancel</button>
+                        </div>
                     </td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        function formatDate(date) {
-            return new Date(date).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        function viewDetails(index) {
-            // Implement reservation details view
-            alert('Details view to be implemented');
-        }
-
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.getElementById('reservationsTableBody').getElementsByTagName('tr');
-            
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
-
-        // Status filter
-        document.getElementById('statusFilter').addEventListener('change', function(e) {
-            const status = e.target.value.toLowerCase();
-            const rows = document.getElementById('reservationsTableBody').getElementsByTagName('tr');
-            
-            Array.from(rows).forEach(row => {
-                const statusCell = row.querySelector('.badge').textContent.toLowerCase();
-                row.style.display = (status === 'all' || statusCell === status) ? '' : 'none';
-            });
-        });
-
-        // Date filter
-        document.getElementById('dateFilter').addEventListener('change', function(e) {
-            const filter = e.target.value;
-            const rows = document.getElementById('reservationsTableBody').getElementsByTagName('tr');
+        function updateDashboardStats(reservations) {
             const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             
-            Array.from(rows).forEach(row => {
-                const pickupDate = new Date(row.cells[4].textContent);
-                let show = true;
-                
-                switch(filter) {
-                    case 'today':
-                        show = pickupDate.toDateString() === now.toDateString();
-                        break;
-                    case 'week':
-                        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
-                        show = pickupDate >= weekAgo;
-                        break;
-                    case 'month':
-                        show = pickupDate.getMonth() === now.getMonth() && 
-                               pickupDate.getFullYear() === now.getFullYear();
-                        break;
+            // Calculate statistics
+            const totalReservations = reservations.length;
+            const activeRentals = reservations.filter(r => {
+                const pickup = new Date(r.pickupDate);
+                const returnDate = new Date(r.returnDate);
+                return pickup <= now && returnDate >= now && r.status === 'Confirmed';
+            }).length;
+            
+            const upcomingPickups = reservations.filter(r => {
+                const pickup = new Date(r.pickupDate);
+                return pickup.toDateString() === today.toDateString() && r.status === 'Confirmed';
+            }).length;
+            
+            const returnsToday = reservations.filter(r => {
+                const returnDate = new Date(r.returnDate);
+                return returnDate.toDateString() === today.toDateString() && r.status === 'Confirmed';
+            }).length;
+
+            // Update the dashboard cards
+            document.getElementById('totalReservations').textContent = totalReservations;
+            document.getElementById('activeRentals').textContent = activeRentals;
+            document.getElementById('upcomingPickups').textContent = upcomingPickups;
+            document.getElementById('returnsToday').textContent = returnsToday;
+        }
+
+        async function updateStatus(id, status) {
+            const key = sessionStorage.getItem('adminKey');
+            if (!key) {
+                alert('Please login again');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/update-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        status: status,
+                        key: key
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update status');
                 }
+
+                // Refresh the dashboard
+                loadDashboard();
                 
-                row.style.display = filter === 'all' || show ? '' : 'none';
-            });
-        });
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('Failed to update status: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
