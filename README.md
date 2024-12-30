@@ -65,7 +65,7 @@ A web-based car reservation system that collects user information and stores it 
 4. Set environment variables:
    ```bash
    heroku config:set NODE_ENV=production
-   heroku config:set ALLOWED_ORIGINS=https://yourdomain.com
+   heroku config:set ALLOWED_ORIGINS=https://carrentcomores.site
    ```
 5. Deploy:
    ```bash
@@ -79,7 +79,7 @@ After deploying the backend, update the API_URL in your frontend code:
 1. Open `index.html`
 2. Update the API_URL constant:
    ```javascript
-   const API_URL = 'https://your-backend-url';
+   const API_URL = 'https://carrentcomores-reservation-api.onrender.com';
    ```
 
 ## Security Features
@@ -114,3 +114,5 @@ MIT
 # site
 # site
 # site
+# site
+# booking
