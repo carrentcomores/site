@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Reservation Form</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        background-color: #ffffff;
+        color: #333;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0.5rem auto;
+        padding: 1rem;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px #ffffff;
+    }
+
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 2rem;
+        font-size: 28px;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background-color: #ffffff;
+        border-radius: 8px;
+    }
+
+    h2 {
+        color: #2c3e50;
+        margin-bottom: 1.0rem;
+        font-size: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.1rem;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    div.paragraph {
+        color: #2c3e50;
+        margin-bottom: 0.2rem;
+        font-size: 14px;
+        text-align: justify;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="datetime-local"],
+    select {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    input[type="file"] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .radio-group input[type="radio"] {
+        margin-right: 0.5rem;
+    }
+
+    .submit-btn {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .submit-btn:hover {
+        background-color: #2980b9;
+    }
+
+    .error {
+        border-color: #e74c3c !important;
+    }
+
+    .error-message {
+        color: #e74c3c;
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            margin: 0;
+            padding: 1rem;
+            border-radius: 0;
+        }
+        
+        .form-section {
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 0.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.8rem;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="date"],
+        input[type="datetime-local"],
+        select {
+            padding: 0.6rem;
+            font-size: 16px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-bottom: 0.2rem;
+        }
+
+        .radio-group {
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .submit-btn {
+            padding: 0.8rem;
+            font-size: 1rem;
+        }
+
+        div.paragraph {
+            font-size: 13px;
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 320px) {
+        h1 {
+            font-size: 20px;
+        }
+        
+        h2 {
+            font-size: 16px;
+        }
+        
+        label {
+            font-size: 13px;
+        }
+        
+        div.paragraph {
+            font-size: 12px;
+        }
+    }
+</style>
+<body>
+    <div class="container">
+        <h1>Reserve Your Car</h1>
+        <div class="paragraph">This reservation form is designed to help you book your car of choice in advance, 
+            ensuring that your preferred vehicle is ready and waiting for you at the time of your reservation. 
+            By completing this form, you guarantee that the car will be prepared and available, 
+            providing a smooth and hassle-free experience when you arrive.</div>
+        <form id="reservationForm" onsubmit="return validateForm(event)">
+            <!-- Personal Information -->
+            <div class="form-section">
+                <h2>Personal Information</h2>
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="birthday">Birthday *</label>
+                    <input type="date" id="birthday" name="birthday" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Home Address *</label>
+                    <input type="text" id="address" name="address" required>
+                </div>
+                <div class="form-group">
+                    <label for="neighbourhood">Neighbourhood *</label>
+                    <input type="text" id="neighbourhood" name="neighbourhood" required>
+                </div>
+            </div>
+
+            <!-- Document Upload -->
+            <div class="form-section">
+                <h2>Documents</h2>
+                <div class="form-group">
+                    <label for="passport">Passport (PDF or JPEG) *</label>
+                    <input type="file" id="passport" name="passport" accept=".pdf,.jpeg,.jpg" required>
+                </div>
+                <div class="form-group">
+                    <label for="license">Driving License (PDF or JPEG) *</label>
+                    <input type="file" id="license" name="license" accept=".pdf,.jpeg,.jpg" required>
+                </div>
+            </div>
+
+            <!-- Budget Selection -->
+            <div class="form-section">
+                <h2>Budget Selection</h2>
+                <div class="form-group">
+                    <label>Select Budget *</label>
+                    <select id="budget" name="budget" required>
+                        <option value="">Choose your budget</option>
+                        <option value="20000">20,000 fr</option>
+                        <option value="30000">30,000 fr</option>
+                        <option value="35000">35,000 fr</option>
+                        <option value="40000">40,000 fr</option>
+                        <option value="50000">50,000 fr</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="form-section">
+                <h2>Reservation Dates</h2>
+                <div class="form-group">
+                    <label for="pickupDate">Pickup Date *</label>
+                    <input type="datetime-local" id="pickupDate" name="pickupDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="returnDate">Return Date *</label>
+                    <input type="datetime-local" id="returnDate" name="returnDate" required>
+                </div>
+            </div>
+
+            <!-- Pickup Location -->
+            <div class="form-section">
+                <h2>Pickup Location</h2>
+                <div class="form-group">
+                    <label>Select Pickup Location *</label>
+                    <div class="radio-group">
+                        <input type="radio" id="agency" name="pickupLocation" value="agency" checked>
+                        <label for="agency">At Agency</label>
+                        <input type="radio" id="specific" name="pickupLocation" value="specific">
+                        <label for="specific">Specific Place</label>
+                    </div>
+                </div>
+                <div class="form-group" id="specificLocationGroup" style="display: none;">
+                    <label for="specificLocation">Enter Pickup Location *</label>
+                    <input type="text" id="specificLocation" name="specificLocation">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Reservation</button>
+        </form>
+    </div>
+    <script>
+        // API configuration
+        const API_URL = 'http://localhost:3000'; // Change this to your production URL when deploying
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get form elements
+            const form = document.getElementById('reservationForm');
+            const pickupDate = document.getElementById('pickupDate');
+            const returnDate = document.getElementById('returnDate');
+            const pickupLocationRadios = document.getElementsByName('pickupLocation');
+            const specificLocationGroup = document.getElementById('specificLocationGroup');
+            const specificLocation = document.getElementById('specificLocation');
+
+            // Set minimum date for pickup date (current date)
+            const today = new Date();
+            const currentDateString = today.toISOString().split('T')[0];
+            pickupDate.setAttribute('min', currentDateString);
+
+            // Handle pickup location radio buttons
+            pickupLocationRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'specific') {
+                        specificLocationGroup.style.display = 'block';
+                        specificLocation.required = true;
+                    } else {
+                        specificLocationGroup.style.display = 'none';
+                        specificLocation.required = false;
+                    }
+                });
+            });
+
+            // Update return date min value when pickup date changes
+            pickupDate.addEventListener('change', function() {
+                returnDate.setAttribute('min', this.value);
+                if (returnDate.value && returnDate.value < this.value) {
+                    returnDate.value = this.value;
+                }
+            });
+
+            // Form validation
+            function validateForm(event) {
+                event.preventDefault();
+                let isValid = true;
+
+                // Validate file types
+                const passport = document.getElementById('passport');
+                const license = document.getElementById('license');
+                
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+                
+                if (!allowedTypes.includes(passport.files[0]?.type)) {
+                    showError(passport, 'Please upload a PDF or JPEG file for passport');
+                    isValid = false;
+                }
+                
+                if (!allowedTypes.includes(license.files[0]?.type)) {
+                    showError(license, 'Please upload a PDF or JPEG file for license');
+                    isValid = false;
+                }
+
+                // Validate dates
+                const pickupDateTime = new Date(pickupDate.value);
+                const returnDateTime = new Date(returnDate.value);
+                const currentDate = new Date();
+
+                if (pickupDateTime < currentDate) {
+                    showError(pickupDate, 'Pickup date cannot be in the past');
+                    isValid = false;
+                }
+
+                if (returnDateTime < pickupDateTime) {
+                    showError(returnDate, 'Return date must be after pickup date');
+                    isValid = false;
+                }
+
+                // Validate specific location if selected
+                if (document.getElementById('specific').checked && !specificLocation.value.trim()) {
+                    showError(specificLocation, 'Please enter a specific pickup location');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    // Create FormData object to send files
+                    const formData = new FormData(form);
+                    
+                    // Send data to server
+                    fetch(`${API_URL}/submit`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Reservation submitted successfully!');
+                            form.reset();
+                        } else {
+                            alert('Error submitting reservation: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error submitting reservation. Please try again.');
+                    });
+                }
+
+                return false;
+            }
+
+            function showError(element, message) {
+                element.classList.add('error');
+                
+                // Remove existing error message if any
+                const existingError = element.parentElement.querySelector('.error-message');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                // Add new error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = message;
+                element.parentElement.appendChild(errorDiv);
+
+                // Remove error class after 3 seconds
+                setTimeout(() => {
+                    element.classList.remove('error');
+                    errorDiv.remove();
+                }, 3000);
+            }
+
+            // Attach form validation to form submit
+            form.addEventListener('submit', validateForm);
+        });
+    </script>
+</body>
+</html>
