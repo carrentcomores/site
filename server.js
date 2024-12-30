@@ -91,7 +91,53 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Create a styled worksheet
+// Function to update Excel file
+async function updateExcelFile(newData) {
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    let workbook;
+    let existingData = [];
+
+    try {
+        // Check if file exists
+        if (fs.existsSync(filePath)) {
+            console.log('Reading existing Excel file');
+            workbook = XLSX.readFile(filePath);
+            if (workbook.Sheets['Reservations']) {
+                existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
+            }
+        } else {
+            console.log('Creating new Excel file');
+            workbook = XLSX.utils.book_new();
+        }
+
+        // Add new data to existing data
+        existingData.push(newData);
+        console.log('Adding new reservation:', newData);
+
+        // Create a new worksheet with the updated data
+        const worksheet = createStyledWorksheet(existingData);
+
+        // Add the worksheet to the workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
+
+        // Ensure the uploads directory exists
+        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Save the workbook
+        console.log('Saving Excel file to:', filePath);
+        XLSX.writeFile(workbook, filePath);
+        console.log('Excel file updated successfully');
+
+    } catch (error) {
+        console.error('Error updating Excel file:', error);
+        throw new Error('Failed to update reservation data');
+    }
+}
+
+// Create a styled worksheet function
 function createStyledWorksheet(data) {
     const formatDateForExcel = (dateString) => {
         try {
@@ -109,6 +155,7 @@ function createStyledWorksheet(data) {
         }
     };
 
+    // Define columns with their properties
     const columns = [
         { header: 'Submission Date', key: 'submissionDate', width: 20 },
         { header: 'First Name', key: 'firstName', width: 15 },
@@ -126,96 +173,62 @@ function createStyledWorksheet(data) {
         { header: 'License File', key: 'licenseFile', width: 30 }
     ];
 
-    // Format dates before creating worksheet
+    // Format dates in the data
     const formattedData = data.map(row => ({
         ...row,
         submissionDate: formatDateForExcel(row.submissionDate),
         birthday: formatDateForExcel(row.birthday),
         pickupDate: formatDateForExcel(row.pickupDate),
-        returnDate: formatDateForExcel(row.returnDate)
+        returnDate: formatDateForExcel(row.returnDate),
+        budget: `${row.budget} fr`
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-
-    // Style configuration
-    const headerStyle = {
-        fill: { fgColor: { rgb: "4F81BD" } },
-        font: { color: { rgb: "FFFFFF" }, bold: true },
-        alignment: { horizontal: "center" },
-        border: {
-            top: { style: "thin" },
-            bottom: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" }
-        }
-    };
-
-    const cellStyle = {
-        border: {
-            top: { style: "thin" },
-            bottom: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" }
-        },
-        alignment: { horizontal: "left", wrapText: true }
-    };
+    // Create worksheet from data
+    const worksheet = XLSX.utils.json_to_sheet(formattedData, {
+        header: columns.map(col => col.key)
+    });
 
     // Set column widths
-    const colWidths = columns.map(col => ({ wch: col.width }));
-    worksheet['!cols'] = colWidths;
+    const colWidths = {};
+    columns.forEach(col => {
+        colWidths[col.key] = { width: col.width };
+    });
+    worksheet['!cols'] = columns.map(col => ({ width: col.width }));
 
-    // Apply styles to cells
-    for (let row = 0; row <= data.length; row++) {
-        for (let col = 0; col < columns.length; col++) {
+    // Add headers
+    const headerRow = {};
+    columns.forEach(col => {
+        headerRow[col.key] = col.header;
+    });
+    XLSX.utils.sheet_add_json(worksheet, [headerRow], { skipHeader: true, origin: 'A1' });
+
+    // Style the worksheet
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let row = range.s.r; row <= range.e.r; row++) {
+        for (let col = range.s.c; col <= range.e.c; col++) {
             const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
             if (!worksheet[cellRef]) continue;
-            
-            if (row === 0) {
-                worksheet[cellRef].s = headerStyle;
-            } else {
-                worksheet[cellRef].s = cellStyle;
-            }
-        }
-    }
 
-    // Apply alternating row colors
-    for (let row = 1; row <= data.length; row++) {
-        const rowStyle = row % 2 === 0 ? { fill: { fgColor: { rgb: "F2F2F2" } } } : {};
-        for (let col = 0; col < columns.length; col++) {
-            const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-            if (worksheet[cellRef]) {
-                worksheet[cellRef].s = { ...worksheet[cellRef].s, ...rowStyle };
+            worksheet[cellRef].s = {
+                font: { name: 'Arial', sz: 11 },
+                alignment: { vertical: 'center', horizontal: 'left' },
+                border: {
+                    top: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    left: { style: 'thin' },
+                    right: { style: 'thin' }
+                }
+            };
+
+            // Style headers
+            if (row === 0) {
+                worksheet[cellRef].s.font.bold = true;
+                worksheet[cellRef].s.fill = { fgColor: { rgb: 'EFEFEF' } };
             }
         }
     }
 
     return worksheet;
-}
-
-// Function to update Excel file
-function updateExcelFile(newData) {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
-    let workbook;
-    let existingData = [];
-
-    try {
-        if (fs.existsSync(filePath)) {
-            workbook = XLSX.readFile(filePath);
-            existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
-        } else {
-            workbook = XLSX.utils.book_new();
-        }
-
-        existingData.push(newData);
-        const worksheet = createStyledWorksheet(existingData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations', true);
-        XLSX.writeFile(workbook, filePath);
-        
-        return true;
-    } catch (error) {
-        console.error('Error updating Excel file:', error);
-        throw new Error('Failed to update Excel file');
-    }
 }
 
 // Handle form submission
