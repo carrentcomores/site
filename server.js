@@ -3,12 +3,27 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs').promises; 
-const fsSync = require('fs'); 
+const fs = require('fs').promises;
+const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Initialize uploads directory
+const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
+if (!fsSync.existsSync(uploadsDir)) {
+    fsSync.mkdirSync(uploadsDir, { recursive: true });
+    console.log('Created uploads directory:', uploadsDir);
+}
+
+// Ensure Excel file directory exists
+const excelFilePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+const excelDir = path.dirname(excelFilePath);
+if (!fsSync.existsSync(excelDir)) {
+    fsSync.mkdirSync(excelDir, { recursive: true });
+    console.log('Created Excel directory:', excelDir);
+}
 
 // Enable CORS for all origins during development
 app.use(cors({
@@ -158,10 +173,13 @@ async function updateExcelFile(newData) {
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
             
             // Save to a temporary file first
-            const tempFilePath = `${filePath}.temp`;
-            XLSX.writeFile(workbook, tempFilePath);
+            const tempFilePath = `${filePath}.temp.xlsx`;
+            await XLSX.writeFile(workbook, tempFilePath);
             
-            // Rename temp file to actual file
+            // Rename temp file to actual file (atomic operation)
+            if (fsSync.existsSync(filePath)) {
+                await fs.unlink(filePath); // Delete existing file if it exists
+            }
             await fs.rename(tempFilePath, filePath);
             
             console.log('Excel file updated successfully');
@@ -170,6 +188,17 @@ async function updateExcelFile(newData) {
         } catch (error) {
             attempt++;
             console.error(`Error updating Excel file (attempt ${attempt}/${maxRetries}):`, error);
+            
+            // Clean up temp file if it exists
+            const tempFilePath = `${filePath}.temp.xlsx`;
+            if (fsSync.existsSync(tempFilePath)) {
+                try {
+                    await fs.unlink(tempFilePath);
+                } catch (cleanupError) {
+                    console.error('Error cleaning up temp file:', cleanupError);
+                }
+            }
+
             if (attempt === maxRetries) {
                 throw new Error('Failed to update reservation data after multiple attempts');
             }
