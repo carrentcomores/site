@@ -385,10 +385,36 @@
                         // Disable submit button and show loading state
                         submitButton.disabled = true;
                         submitButton.textContent = 'Submitting...';
-                        
+
+                        // Format dates properly
+                        const formatDateForSubmission = (dateString) => {
+                            try {
+                                const date = new Date(dateString);
+                                if (isNaN(date.getTime())) {
+                                    throw new Error('Invalid date');
+                                }
+                                return date.toISOString();
+                            } catch (error) {
+                                console.error('Date formatting error:', error);
+                                return '';
+                            }
+                        };
+
+                        // Update date fields with proper formatting
+                        const birthday = document.getElementById('birthday').value;
+                        const pickupDateValue = pickupDate.value;
+                        const returnDateValue = returnDate.value;
+
+                        const formattedBirthday = formatDateForSubmission(birthday);
+                        const formattedPickupDate = formatDateForSubmission(pickupDateValue);
+                        const formattedReturnDate = formatDateForSubmission(returnDateValue);
+
                         // Create FormData object to send files
                         const formData = new FormData(form);
-                        
+                        formData.set('birthday', formattedBirthday);
+                        formData.set('pickupDate', formattedPickupDate);
+                        formData.set('returnDate', formattedReturnDate);
+
                         // Send data to server
                         const response = await fetch(`${API_URL}/submit`, {
                             method: 'POST',

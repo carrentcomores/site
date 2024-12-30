@@ -93,6 +93,22 @@ app.get('/health', (req, res) => {
 
 // Create a styled worksheet
 function createStyledWorksheet(data) {
+    const formatDateForExcel = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return dateString;
+        }
+    };
+
     const columns = [
         { header: 'Submission Date', key: 'submissionDate', width: 20 },
         { header: 'First Name', key: 'firstName', width: 15 },
@@ -110,7 +126,16 @@ function createStyledWorksheet(data) {
         { header: 'License File', key: 'licenseFile', width: 30 }
     ];
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    // Format dates before creating worksheet
+    const formattedData = data.map(row => ({
+        ...row,
+        submissionDate: formatDateForExcel(row.submissionDate),
+        birthday: formatDateForExcel(row.birthday),
+        pickupDate: formatDateForExcel(row.pickupDate),
+        returnDate: formatDateForExcel(row.returnDate)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
 
     // Style configuration
     const headerStyle = {
@@ -149,27 +174,6 @@ function createStyledWorksheet(data) {
                 worksheet[cellRef].s = headerStyle;
             } else {
                 worksheet[cellRef].s = cellStyle;
-                
-                // Format dates
-                if (['submissionDate', 'pickupDate', 'returnDate', 'birthday'].includes(columns[col].key)) {
-                    try {
-                        const date = new Date(worksheet[cellRef].v);
-                        worksheet[cellRef].v = date.toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    } catch (e) {
-                        // Keep original value if date parsing fails
-                    }
-                }
-                
-                // Format budget
-                if (columns[col].key === 'budget') {
-                    worksheet[cellRef].v = `${worksheet[cellRef].v} fr`;
-                }
             }
         }
     }
@@ -227,12 +231,49 @@ app.post('/submit', upload.fields([
             });
         }
 
+        // Format dates properly
+        const formatDate = (dateString) => {
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    throw new Error('Invalid date');
+                }
+                return date.toISOString();
+            } catch (error) {
+                console.error('Date parsing error:', error);
+                return null;
+            }
+        };
+
         const formData = {
-            ...req.body,
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            birthday: formatDate(req.body.birthday),
+            phone: req.body.phone,
+            address: req.body.address,
+            neighbourhood: req.body.neighbourhood,
+            budget: req.body.budget,
+            pickupDate: formatDate(req.body.pickupDate),
+            returnDate: formatDate(req.body.returnDate),
+            pickupLocation: req.body.pickupLocation,
+            specificLocation: req.body.specificLocation || '',
             submissionDate: new Date().toISOString(),
             passportFile: req.files.passport[0].filename,
             licenseFile: req.files.license[0].filename
         };
+
+        // Validate all required fields
+        const requiredFields = ['firstName', 'lastName', 'birthday', 'phone', 'address', 
+                              'neighbourhood', 'budget', 'pickupDate', 'returnDate', 'pickupLocation'];
+        
+        for (const field of requiredFields) {
+            if (!formData[field]) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid or missing ${field}`
+                });
+            }
+        }
 
         await updateExcelFile(formData);
         res.json({ success: true, message: 'Data saved successfully' });
