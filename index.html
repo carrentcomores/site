@@ -268,11 +268,11 @@
             <div class="form-section">
                 <h2>Reservation Dates</h2>
                 <div class="form-group">
-                    <label for="pickupDate">Pickup Date *</label>
+                    <label for="pickupDate">Pickup Date:</label>
                     <input type="datetime-local" id="pickupDate" name="pickupDate" required>
                 </div>
                 <div class="form-group">
-                    <label for="returnDate">Return Date *</label>
+                    <label for="returnDate">Return Date:</label>
                     <input type="datetime-local" id="returnDate" name="returnDate" required>
                 </div>
             </div>
@@ -311,24 +311,51 @@
             const specificLocation = document.getElementById('specificLocation');
             const submitButton = document.getElementById('submitBtn');
 
-            // Set minimum date for pickup date (current date)
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            pickupDate.min = tomorrow.toISOString().split('T')[0];
-
-            // Update return date minimum when pickup date changes
-            pickupDate.addEventListener('change', function() {
-                const selectedPickup = new Date(this.value);
-                const minReturn = new Date(selectedPickup);
-                minReturn.setDate(minReturn.getDate() + 1);
-                returnDate.min = minReturn.toISOString().split('T')[0];
+            // Set minimum date for pickup and return dates
+            function updateMinDates() {
+                const now = new Date();
+                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                const minDateTime = localDateTime.toISOString().slice(0, 16);
                 
-                // Clear return date if it's before new minimum
-                if (new Date(returnDate.value) < minReturn) {
-                    returnDate.value = '';
+                const pickupDate = document.getElementById('pickupDate');
+                const returnDate = document.getElementById('returnDate');
+                
+                // Set minimum pickup date to current date/time
+                pickupDate.min = minDateTime;
+                
+                // If pickup date is before current time, reset it
+                if (pickupDate.value && new Date(pickupDate.value) < now) {
+                    pickupDate.value = minDateTime;
                 }
-            });
+                
+                // Update return date constraints
+                function updateReturnDateMin() {
+                    if (pickupDate.value) {
+                        // Set minimum return date to pickup date
+                        returnDate.min = pickupDate.value;
+                        
+                        // If return date is before pickup date, reset it to pickup date
+                        if (returnDate.value && new Date(returnDate.value) < new Date(pickupDate.value)) {
+                            returnDate.value = pickupDate.value;
+                        }
+                    } else {
+                        // If no pickup date is set, minimum return date is current date/time
+                        returnDate.min = minDateTime;
+                    }
+                }
+                
+                // Update return date constraints when pickup date changes
+                pickupDate.addEventListener('change', updateReturnDateMin);
+                
+                // Update return date constraints when the function is called
+                updateReturnDateMin();
+            }
+
+            // Call updateMinDates when the page loads
+            updateMinDates();
+
+            // Update min dates every minute to keep them current
+            setInterval(updateMinDates, 60000);
 
             // Toggle specific location input visibility
             pickupLocationRadios.forEach(radio => {
@@ -418,6 +445,27 @@
                 } finally {
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit';
+                }
+            });
+
+            // Add validation to the form submission
+            document.getElementById('reservationForm').addEventListener('submit', function(event) {
+                const pickupDate = new Date(document.getElementById('pickupDate').value);
+                const returnDate = new Date(document.getElementById('returnDate').value);
+                const now = new Date();
+                
+                // Check if pickup date is in the past
+                if (pickupDate < now) {
+                    event.preventDefault();
+                    alert('Pickup date cannot be in the past.');
+                    return;
+                }
+                
+                // Check if return date is before pickup date
+                if (returnDate < pickupDate) {
+                    event.preventDefault();
+                    alert('Return date must be after pickup date.');
+                    return;
                 }
             });
         });

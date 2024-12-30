@@ -353,7 +353,7 @@ const authenticateAdmin = (req, res, next) => {
 
 // Download Excel file endpoint
 app.get('/download-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
     
     try {
         if (!fsSync.existsSync(filePath)) {
@@ -363,13 +363,17 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
             });
         }
 
-        const fileName = `reservations-${new Date().toISOString().split('T')[0]}.xlsx`;
+        // Read the file into a buffer
+        const fileBuffer = fsSync.readFileSync(filePath);
         
+        // Set response headers
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="reservations-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        res.setHeader('Content-Length', fileBuffer.length);
         
-        const fileStream = fs.createReadStream(filePath);
-        fileStream.pipe(res);
+        // Send the file buffer
+        res.send(fileBuffer);
+
     } catch (error) {
         console.error('Error downloading file:', error);
         res.status(500).json({
@@ -381,11 +385,14 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
 
 // List all reservations endpoint
 app.get('/list-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
     
     try {
         if (!fsSync.existsSync(filePath)) {
-            return res.json({ reservations: [] });
+            return res.json({ 
+                total: 0,
+                reservations: [] 
+            });
         }
 
         const workbook = XLSX.readFile(filePath);
