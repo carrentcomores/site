@@ -392,8 +392,19 @@
                         // Send data to server
                         const response = await fetch(`${API_URL}/submit`, {
                             method: 'POST',
-                            body: formData
+                            body: formData,
+                            mode: 'cors',
+                            credentials: 'omit',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
                         });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('Server response:', errorText);
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
 
                         const data = await response.json();
 

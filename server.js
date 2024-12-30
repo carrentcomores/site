@@ -7,23 +7,22 @@ const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'];
 
-// Enable CORS with specific origin
+// Enable CORS for all origins during development
 app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
-    methods: ['POST'],
-    credentials: true
+    origin: '*', // Allow all origins temporarily
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: false // Changed to false since we're using '*'
 }));
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    console.log('Origin:', req.headers.origin);
+    console.log('Headers:', req.headers);
+    next();
+});
 
 // Security headers
 app.use((req, res, next) => {
@@ -66,6 +65,30 @@ const upload = multer({
     limits: {
         fileSize: 5 * 1024 * 1024 // 5MB limit
     }
+});
+
+// Serve static files
+app.use(express.static('public'));
+
+// Root route
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Car Reservation API',
+        endpoints: {
+            health: '/health',
+            submit: '/submit (POST)',
+        },
+        status: 'running'
+    });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
 });
 
 // Create a styled worksheet
@@ -191,17 +214,6 @@ function updateExcelFile(newData) {
     }
 }
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        message: process.env.NODE_ENV === 'production' 
-            ? 'An internal server error occurred' 
-            : err.message
-    });
-});
-
 // Handle form submission
 app.post('/submit', upload.fields([
     { name: 'passport', maxCount: 1 },
@@ -238,9 +250,24 @@ app.post('/submit', upload.fields([
 // Serve static files from the uploads directory
 app.use('/uploads', express.static('uploads'));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy' });
+// Error handling for 404
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        message: 'The requested resource was not found on this server',
+        path: req.path
+    });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'production' 
+            ? 'An internal server error occurred' 
+            : err.message
+    });
 });
 
 app.listen(port, () => {
