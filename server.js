@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? ['https://carrentcomores.site', 'https://www.carrentcomores.site']
+        ? ['https://carrentcomores-reservation-api.onrender.com']
         : '*',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -34,6 +34,7 @@ app.use(cors({
 // Serve static files - order matters!
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Initialize uploads directory
 if (!fsSync.existsSync(UPLOAD_DIR)) {
@@ -107,6 +108,16 @@ const upload = multer({
     }
 });
 
+// Function to get Excel file path
+const getExcelFilePath = () => {
+    // If EXCEL_FILE is an absolute path, use it directly
+    if (path.isAbsolute(EXCEL_FILE)) {
+        return EXCEL_FILE;
+    }
+    // Otherwise, resolve it relative to the project root
+    return path.join(__dirname, EXCEL_FILE);
+};
+
 // Admin authentication middleware
 const authenticateAdmin = (req, res, next) => {
     console.log('Auth request received');
@@ -127,18 +138,9 @@ const authenticateAdmin = (req, res, next) => {
     next();
 };
 
-// Function to get Excel file path
-const getExcelFilePath = () => {
-    // If EXCEL_FILE is an absolute path, use it directly
-    if (path.isAbsolute(EXCEL_FILE)) {
-        return EXCEL_FILE;
-    }
-    // Otherwise, resolve it relative to the project root
-    return path.join(__dirname, EXCEL_FILE);
-};
-
 // Admin Routes - place these before the catch-all route
 app.get('/dashboard', (req, res) => {
+    console.log('Serving dashboard.html');
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
@@ -197,8 +199,10 @@ app.get('/', (req, res) => {
 
 // Catch-all route for SPA - must be after all other routes
 app.get('*', (req, res) => {
+    console.log('Catch-all route hit:', req.path);
     // If the request is for the dashboard path, serve dashboard.html
     if (req.path === '/dashboard') {
+        console.log('Serving dashboard from catch-all');
         return res.sendFile(path.join(__dirname, 'dashboard.html'));
     }
     // Otherwise, serve index.html
