@@ -31,9 +31,9 @@ app.use(cors({
     credentials: false
 }));
 
-// Serve static files
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+// Serve static files - order matters!
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize uploads directory
 if (!fsSync.existsSync(UPLOAD_DIR)) {
@@ -137,7 +137,7 @@ const getExcelFilePath = () => {
     return path.join(__dirname, EXCEL_FILE);
 };
 
-// Admin Routes
+// Admin Routes - place these before the catch-all route
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
@@ -190,16 +190,19 @@ app.get('/list-reservations', authenticateAdmin, (req, res) => {
     }
 });
 
-// Root route
+// Root route - serve index.html
 app.get('/', (req, res) => {
-    res.json({
-        message: 'Car Reservation API',
-        endpoints: {
-            health: '/health',
-            submit: '/submit (POST)',
-        },
-        status: 'running'
-    });
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Catch-all route for SPA - must be after all other routes
+app.get('*', (req, res) => {
+    // If the request is for the dashboard path, serve dashboard.html
+    if (req.path === '/dashboard') {
+        return res.sendFile(path.join(__dirname, 'dashboard.html'));
+    }
+    // Otherwise, serve index.html
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Health check endpoint
