@@ -375,6 +375,25 @@
             document.getElementById('upcomingPickups').textContent = upcomingPickups;
             document.getElementById('returnsToday').textContent = returnsToday;
         }
+
+        // Add event listeners for filtering
+        document.getElementById('statusFilter').addEventListener('change', function(e) {
+            const selectedStatus = e.target.value;
+            const rows = document.getElementById('reservationsTableBody').getElementsByTagName('tr');
+            Array.from(rows).forEach(row => {
+                const statusCell = row.cells[6].textContent.toLowerCase(); // Assuming status is in the 7th column
+                row.style.display = (selectedStatus === 'all' || statusCell === selectedStatus) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('dateFilter').addEventListener('change', function(e) {
+            const selectedDate = new Date(e.target.value).toDateString();
+            const rows = document.getElementById('reservationsTableBody').getElementsByTagName('tr');
+            Array.from(rows).forEach(row => {
+                const pickupDateCell = new Date(row.cells[4].textContent).toDateString(); // Assuming pickup date is in the 5th column
+                row.style.display = (selectedDate === '' || pickupDateCell === selectedDate) ? '' : 'none';
+            });
+        });
     </script>
 </body>
 </html>
