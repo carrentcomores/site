@@ -168,8 +168,47 @@ async function updateExcelFile(newData) {
             };
             existingData.push(dataWithId);
 
-            // Create worksheet
-            const worksheet = createStyledWorksheet(existingData);
+            // Format the data for Excel
+            const formattedData = existingData.map(row => ({
+                'Submission Date': new Date(row.submissionDate).toLocaleString(),
+                'First Name': row.firstName,
+                'Last Name': row.lastName,
+                'Birthday': new Date(row.birthday).toLocaleString().split(',')[0],
+                'Phone': row.phone,
+                'Address': row.address,
+                'Neighbourhood': row.neighbourhood,
+                'Budget': row.budget + ' fr',
+                'Pickup Date': new Date(row.pickupDate).toLocaleString(),
+                'Return Date': new Date(row.returnDate).toLocaleString(),
+                'Pickup Location': row.pickupLocation,
+                'Specific Location': row.specificLocation,
+                'Passport File': row.passportFile,
+                'License File': row.licenseFile,
+                'Reservation ID': row.id
+            }));
+
+            // Create a new worksheet
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+            // Set column widths
+            const cols = [
+                { wch: 20 }, // Submission Date
+                { wch: 15 }, // First Name
+                { wch: 15 }, // Last Name
+                { wch: 12 }, // Birthday
+                { wch: 15 }, // Phone
+                { wch: 30 }, // Address
+                { wch: 20 }, // Neighbourhood
+                { wch: 12 }, // Budget
+                { wch: 20 }, // Pickup Date
+                { wch: 20 }, // Return Date
+                { wch: 15 }, // Pickup Location
+                { wch: 30 }, // Specific Location
+                { wch: 30 }, // Passport File
+                { wch: 30 }, // License File
+                { wch: 40 }  // Reservation ID
+            ];
+            worksheet['!cols'] = cols;
 
             // Remove existing worksheet if it exists
             if (workbook.Sheets['Reservations']) {
@@ -218,98 +257,6 @@ async function updateExcelFile(newData) {
             releaseLock();
         }
     }
-}
-
-// Create a styled worksheet function
-function createStyledWorksheet(data) {
-    const formatDateForExcel = (dateString) => {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            console.error('Error formatting date:', error);
-            return dateString;
-        }
-    };
-
-    // Define columns with their properties
-    const columns = [
-        { header: 'Submission Date', key: 'submissionDate', width: 20 },
-        { header: 'First Name', key: 'firstName', width: 15 },
-        { header: 'Last Name', key: 'lastName', width: 15 },
-        { header: 'Birthday', key: 'birthday', width: 12 },
-        { header: 'Phone', key: 'phone', width: 15 },
-        { header: 'Address', key: 'address', width: 30 },
-        { header: 'Neighbourhood', key: 'neighbourhood', width: 20 },
-        { header: 'Budget (fr)', key: 'budget', width: 12 },
-        { header: 'Pickup Date', key: 'pickupDate', width: 20 },
-        { header: 'Return Date', key: 'returnDate', width: 20 },
-        { header: 'Pickup Location', key: 'pickupLocation', width: 15 },
-        { header: 'Specific Location', key: 'specificLocation', width: 30 },
-        { header: 'Passport File', key: 'passportFile', width: 30 },
-        { header: 'License File', key: 'licenseFile', width: 30 },
-        { header: 'Reservation ID', key: 'id', width: 40 }
-    ];
-
-    // Format dates in the data
-    const formattedData = data.map(row => ({
-        ...row,
-        submissionDate: formatDateForExcel(row.submissionDate),
-        birthday: formatDateForExcel(row.birthday),
-        pickupDate: formatDateForExcel(row.pickupDate),
-        returnDate: formatDateForExcel(row.returnDate),
-        budget: `${row.budget} fr`
-    }));
-
-    // Create worksheet from data
-    const worksheet = XLSX.utils.json_to_sheet(formattedData, {
-        header: columns.map(col => col.key)
-    });
-
-    // Set column widths
-    worksheet['!cols'] = columns.map(col => ({ width: col.width }));
-
-    // Add headers
-    const headerRow = {};
-    columns.forEach(col => {
-        headerRow[col.key] = col.header;
-    });
-    XLSX.utils.sheet_add_json(worksheet, [headerRow], { skipHeader: true, origin: 'A1' });
-
-    // Style the worksheet
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let row = range.s.r; row <= range.e.r; row++) {
-        for (let col = range.s.c; col <= range.e.c; col++) {
-            const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-            if (!worksheet[cellRef]) continue;
-
-            worksheet[cellRef].s = {
-                font: { name: 'Arial', sz: 11 },
-                alignment: { vertical: 'center', horizontal: 'left', wrapText: true },
-                border: {
-                    top: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    left: { style: 'thin' },
-                    right: { style: 'thin' }
-                }
-            };
-
-            // Style headers
-            if (row === 0) {
-                worksheet[cellRef].s.font.bold = true;
-                worksheet[cellRef].s.fill = { fgColor: { rgb: 'EFEFEF' } };
-                worksheet[cellRef].s.alignment.horizontal = 'center';
-            }
-        }
-    }
-
-    return worksheet;
 }
 
 // Handle form submission with queue
