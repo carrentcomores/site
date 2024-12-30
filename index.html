@@ -303,7 +303,6 @@
         const API_URL = 'https://carrentcomores-reservation-api.onrender.com';
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Get form elements
             const form = document.getElementById('reservationForm');
             const pickupDate = document.getElementById('pickupDate');
             const returnDate = document.getElementById('returnDate');
@@ -314,92 +313,85 @@
 
             // Set minimum date for pickup date (current date)
             const today = new Date();
-            const currentDateString = today.toISOString().split('T')[0];
-            pickupDate.setAttribute('min', currentDateString);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            pickupDate.min = tomorrow.toISOString().split('T')[0];
 
-            // Handle pickup location radio buttons
-            pickupLocationRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (this.value === 'specific') {
-                        specificLocationGroup.style.display = 'block';
-                        specificLocation.required = true;
-                    } else {
-                        specificLocationGroup.style.display = 'none';
-                        specificLocation.required = false;
-                    }
-                });
-            });
-
-            // Update return date min value when pickup date changes
+            // Update return date minimum when pickup date changes
             pickupDate.addEventListener('change', function() {
-                returnDate.setAttribute('min', this.value);
-                if (returnDate.value && returnDate.value < this.value) {
-                    returnDate.value = this.value;
+                const selectedPickup = new Date(this.value);
+                const minReturn = new Date(selectedPickup);
+                minReturn.setDate(minReturn.getDate() + 1);
+                returnDate.min = minReturn.toISOString().split('T')[0];
+                
+                // Clear return date if it's before new minimum
+                if (new Date(returnDate.value) < minReturn) {
+                    returnDate.value = '';
                 }
             });
 
+            // Toggle specific location input visibility
+            pickupLocationRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    specificLocationGroup.style.display = 
+                        this.value === 'specific' ? 'block' : 'none';
+                    if (this.value !== 'specific') {
+                        specificLocation.value = '';
+                    }
+                }
+            )});
+
             // Form submission handling
-            async function handleSubmit(event) {
+            form.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const submitButton = document.getElementById('submitBtn');
-                const form = event.target;
 
                 try {
                     submitButton.disabled = true;
                     submitButton.textContent = 'Submitting...';
 
-                    // Get form field values directly from elements
-                    const firstName = document.getElementById('firstName').value.trim();
-                    const lastName = document.getElementById('lastName').value.trim();
-                    const birthday = document.getElementById('birthday').value;
-                    const phone = document.getElementById('phone').value.trim();
-                    const address = document.getElementById('address').value.trim();
-                    const neighbourhood = document.getElementById('neighbourhood').value.trim();
-                    const budget = document.getElementById('budget').value.trim();
-                    const pickupDateValue = pickupDate.value;
-                    const returnDateValue = returnDate.value;
-                    const pickupLocation = document.getElementById('pickupLocation').value.trim();
-                    const specificLocation = document.getElementById('specificLocation').value.trim();
+                    // Get form field values
+                    const formData = new FormData(this);
 
                     // Validate required fields
-                    if (!firstName || !lastName || !birthday || !phone || !address || 
-                        !neighbourhood || !budget || !pickupDateValue || !returnDateValue || !pickupLocation) {
-                        throw new Error('Please fill in all required fields');
+                    const requiredFields = [
+                        'firstName', 'lastName', 'birthday', 'phone',
+                        'address', 'neighbourhood', 'budget',
+                        'pickupDate', 'returnDate', 'pickupLocation'
+                    ];
+
+                    for (const field of requiredFields) {
+                        if (!formData.get(field)) {
+                            throw new Error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                        }
                     }
 
                     // Format dates
-                    const formatDateForSubmission = (dateString) => {
-                        try {
-                            const date = new Date(dateString);
-                            if (isNaN(date.getTime())) {
-                                throw new Error('Invalid date');
-                            }
-                            return date.toISOString();
-                        } catch (error) {
-                            console.error('Date formatting error:', error);
+                    const formatDate = (dateStr) => {
+                        const date = new Date(dateStr);
+                        if (isNaN(date.getTime())) {
                             throw new Error('Invalid date format');
                         }
+                        return date.toISOString();
                     };
 
-                    // Create FormData and set values
-                    const formData = new FormData(form);
-                    formData.set('firstName', firstName);
-                    formData.set('lastName', lastName);
-                    formData.set('birthday', formatDateForSubmission(birthday));
-                    formData.set('phone', phone);
-                    formData.set('address', address);
-                    formData.set('neighbourhood', neighbourhood);
-                    formData.set('budget', budget);
-                    formData.set('pickupDate', formatDateForSubmission(pickupDateValue));
-                    formData.set('returnDate', formatDateForSubmission(returnDateValue));
-                    formData.set('pickupLocation', pickupLocation);
-                    formData.set('specificLocation', specificLocation);
+                    // Update dates in formData
+                    formData.set('birthday', formatDate(formData.get('birthday')));
+                    formData.set('pickupDate', formatDate(formData.get('pickupDate')));
+                    formData.set('returnDate', formatDate(formData.get('returnDate')));
 
-                    // Log form data for debugging
-                    for (let [key, value] of formData.entries()) {
-                        console.log(`${key}: ${value}`);
+                    // Validate file uploads
+                    const passport = document.getElementById('passport');
+                    const license = document.getElementById('license');
+                    
+                    if (!passport.files[0]) {
+                        throw new Error('Please upload your passport');
+                    }
+                    if (!license.files[0]) {
+                        throw new Error('Please upload your license');
                     }
 
+                    // Send to server
                     const response = await fetch(`${API_URL}/submit`, {
                         method: 'POST',
                         body: formData,
@@ -407,18 +399,19 @@
                         credentials: 'omit'
                     });
 
+                    const data = await response.json();
+                    
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || 'Submission failed');
+                        throw new Error(data.message || 'Submission failed');
                     }
 
-                    const data = await response.json();
                     if (data.success) {
-                        form.reset();
                         alert('Reservation submitted successfully!');
+                        this.reset();
                     } else {
                         throw new Error(data.message || 'Submission failed');
                     }
+
                 } catch (error) {
                     console.error('Submission error:', error);
                     alert(error.message || 'An error occurred during submission');
@@ -426,10 +419,7 @@
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit';
                 }
-            }
-
-            // Attach form submission handling to form submit
-            form.addEventListener('submit', handleSubmit);
+            });
         });
     </script>
 </body>
