@@ -137,34 +137,70 @@ function releaseLock() {
 
 // Function to update Excel file
 async function updateExcelFile(newData) {
-    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    console.log('Using Excel file path:', filePath);
+    
     let workbook;
     let existingData = [];
 
     try {
+        // Ensure the uploads directory exists
+        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
+        if (!fsSync.existsSync(uploadsDir)) {
+            console.log('Creating uploads directory:', uploadsDir);
+            fsSync.mkdirSync(uploadsDir, { recursive: true });
+        }
+
         // Check if file exists and read existing data
         if (fsSync.existsSync(filePath)) {
             console.log('Reading existing Excel file');
-            workbook = XLSX.readFile(filePath);
-            if (workbook.Sheets['Reservations']) {
-                existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
+            try {
+                workbook = XLSX.readFile(filePath);
+                if (workbook.Sheets['Reservations']) {
+                    existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
+                    console.log('Found existing reservations:', existingData.length);
+                } else {
+                    console.log('No Reservations sheet found in existing file');
+                }
+            } catch (readError) {
+                console.error('Error reading existing file:', readError);
+                // If there's an error reading the file, create a new one
+                console.log('Creating new workbook due to read error');
+                workbook = XLSX.utils.book_new();
             }
         } else {
-            console.log('Creating new Excel file');
+            console.log('Excel file does not exist, creating new workbook');
             workbook = XLSX.utils.book_new();
         }
 
+        // Format the new data
+        const formattedNewData = {
+            submissionDate: new Date().toISOString(),
+            firstName: newData.firstName,
+            lastName: newData.lastName,
+            birthday: newData.birthday,
+            phone: newData.phone,
+            address: newData.address,
+            neighbourhood: newData.neighbourhood,
+            budget: newData.budget,
+            pickupDate: newData.pickupDate,
+            returnDate: newData.returnDate,
+            pickupLocation: newData.pickupLocation,
+            specificLocation: newData.specificLocation || '',
+            passportFile: newData.passportFile,
+            licenseFile: newData.licenseFile
+        };
+
         // Add new data to existing data
-        existingData.push({
-            ...newData,
-            submissionDate: new Date().toISOString()
-        });
+        existingData.push(formattedNewData);
+        console.log('Added new reservation to dataset');
 
         // Create a new worksheet with the updated data
         const worksheet = XLSX.utils.json_to_sheet(existingData);
+        console.log('Created new worksheet');
 
         // Set column widths
-        const cols = [
+        worksheet['!cols'] = [
             { wch: 20 }, // Submission Date
             { wch: 15 }, // First Name
             { wch: 15 }, // Last Name
@@ -180,107 +216,118 @@ async function updateExcelFile(newData) {
             { wch: 30 }, // Passport File
             { wch: 30 }  // License File
         ];
-        worksheet['!cols'] = cols;
 
         // Remove existing sheet if it exists
-        if (workbook.Sheets['Reservations']) {
-            delete workbook.Sheets['Reservations'];
-            const idx = workbook.SheetNames.indexOf('Reservations');
+        const sheetName = 'Reservations';
+        if (workbook.Sheets[sheetName]) {
+            delete workbook.Sheets[sheetName];
+            const idx = workbook.SheetNames.indexOf(sheetName);
             if (idx !== -1) {
                 workbook.SheetNames.splice(idx, 1);
             }
         }
 
         // Add the worksheet to the workbook
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        console.log('Added worksheet to workbook');
 
-        // Ensure the uploads directory exists
-        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
-        if (!fsSync.existsSync(uploadsDir)) {
-            fsSync.mkdirSync(uploadsDir, { recursive: true });
+        // Save directly to the file
+        try {
+            XLSX.writeFile(workbook, filePath);
+            console.log('Successfully wrote Excel file');
+        } catch (writeError) {
+            console.error('Error writing Excel file:', writeError);
+            throw writeError;
         }
-
-        // Write to a temporary file first
-        const tempFilePath = `${filePath}.temp`;
-        XLSX.writeFile(workbook, tempFilePath);
-
-        // Rename temp file to actual file (atomic operation)
-        fsSync.renameSync(tempFilePath, filePath);
-        console.log('Excel file updated successfully');
 
     } catch (error) {
-        console.error('Error updating Excel file:', error);
-        // Clean up temp file if it exists
-        const tempFilePath = `${filePath}.temp`;
-        if (fsSync.existsSync(tempFilePath)) {
-            try {
-                fsSync.unlinkSync(tempFilePath);
-            } catch (cleanupError) {
-                console.error('Error cleaning up temp file:', cleanupError);
-            }
-        }
-        throw new Error('Failed to update reservation data');
+        console.error('Error in updateExcelFile:', error);
+        throw new Error(`Failed to update reservation data: ${error.message}`);
     }
 }
 
-// Handle form submission with queue
+// Handle form submission
 app.post('/submit', upload.fields([
     { name: 'passport', maxCount: 1 },
     { name: 'license', maxCount: 1 }
 ]), async (req, res) => {
+    console.log('Received form submission');
     try {
         // Validate files
         if (!req.files || !req.files.passport || !req.files.license) {
+            console.error('Missing required files');
             return res.status(400).json({ 
                 success: false, 
                 message: 'Both passport and license files are required' 
             });
         }
 
-        // Process form data
+        // Basic data validation
+        const validateField = (field, name) => {
+            if (!field || field.trim() === '') {
+                throw new Error(`${name} is required`);
+            }
+            return field.trim();
+        };
+
+        // Validate and format form data
         const formData = {
-            firstName: req.body.firstName,
-            lastName: req.body.lastName,
-            birthday: req.body.birthday,
-            phone: req.body.phone,
-            address: req.body.address,
-            neighbourhood: req.body.neighbourhood,
-            budget: req.body.budget,
-            pickupDate: req.body.pickupDate,
-            returnDate: req.body.returnDate,
-            pickupLocation: req.body.pickupLocation,
+            firstName: validateField(req.body.firstName, 'First name'),
+            lastName: validateField(req.body.lastName, 'Last name'),
+            phone: validateField(req.body.phone, 'Phone number'),
+            address: validateField(req.body.address, 'Address'),
+            neighbourhood: validateField(req.body.neighbourhood, 'Neighbourhood'),
+            budget: validateField(req.body.budget, 'Budget'),
+            pickupLocation: validateField(req.body.pickupLocation, 'Pickup location'),
             specificLocation: req.body.specificLocation || '',
             passportFile: req.files.passport[0].filename,
             licenseFile: req.files.license[0].filename
         };
 
-        // Add to Excel file with queuing
-        const savedData = await new Promise((resolve, reject) => {
-            const processWrite = async () => {
-                try {
-                    const result = await updateExcelFile(formData);
-                    resolve(result);
-                } catch (error) {
-                    reject(error);
+        // Date validation and formatting
+        const validateDate = (dateString, fieldName) => {
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    throw new Error(`Invalid ${fieldName}`);
                 }
-            };
-
-            if (isExcelFileLocked) {
-                pendingWrites.push(processWrite);
-            } else {
-                processWrite();
+                return date.toISOString();
+            } catch (error) {
+                throw new Error(`Invalid ${fieldName}`);
             }
-        });
+        };
 
+        formData.birthday = validateDate(req.body.birthday, 'birthday');
+        formData.pickupDate = validateDate(req.body.pickupDate, 'pickup date');
+        formData.returnDate = validateDate(req.body.returnDate, 'return date');
+
+        // Additional date validations
+        const pickup = new Date(formData.pickupDate);
+        const returnDate = new Date(formData.returnDate);
+        const now = new Date();
+
+        if (pickup < now) {
+            throw new Error('Pickup date cannot be in the past');
+        }
+
+        if (returnDate < pickup) {
+            throw new Error('Return date must be after pickup date');
+        }
+
+        console.log('Validated form data:', formData);
+
+        // Update Excel file
+        await updateExcelFile(formData);
+        console.log('Successfully updated Excel file');
+        
         res.json({ 
             success: true, 
-            message: 'Reservation submitted successfully',
-            reservationId: savedData.id
+            message: 'Reservation submitted successfully'
         });
 
     } catch (error) {
         console.error('Error processing submission:', error);
-        res.status(500).json({ 
+        res.status(400).json({ 
             success: false, 
             message: error.message || 'Error processing your request'
         });
