@@ -168,8 +168,19 @@ async function updateExcelFile(newData) {
             };
             existingData.push(dataWithId);
 
-            // Create worksheet and save
+            // Create worksheet
             const worksheet = createStyledWorksheet(existingData);
+
+            // Remove existing worksheet if it exists
+            if (workbook.Sheets['Reservations']) {
+                delete workbook.Sheets['Reservations'];
+                const idx = workbook.SheetNames.indexOf('Reservations');
+                if (idx !== -1) {
+                    workbook.SheetNames.splice(idx, 1);
+                }
+            }
+
+            // Add the worksheet to the workbook
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
             
             // Save to a temporary file first
@@ -242,7 +253,8 @@ function createStyledWorksheet(data) {
         { header: 'Pickup Location', key: 'pickupLocation', width: 15 },
         { header: 'Specific Location', key: 'specificLocation', width: 30 },
         { header: 'Passport File', key: 'passportFile', width: 30 },
-        { header: 'License File', key: 'licenseFile', width: 30 }
+        { header: 'License File', key: 'licenseFile', width: 30 },
+        { header: 'Reservation ID', key: 'id', width: 40 }
     ];
 
     // Format dates in the data
@@ -261,10 +273,6 @@ function createStyledWorksheet(data) {
     });
 
     // Set column widths
-    const colWidths = {};
-    columns.forEach(col => {
-        colWidths[col.key] = { width: col.width };
-    });
     worksheet['!cols'] = columns.map(col => ({ width: col.width }));
 
     // Add headers
@@ -283,7 +291,7 @@ function createStyledWorksheet(data) {
 
             worksheet[cellRef].s = {
                 font: { name: 'Arial', sz: 11 },
-                alignment: { vertical: 'center', horizontal: 'left' },
+                alignment: { vertical: 'center', horizontal: 'left', wrapText: true },
                 border: {
                     top: { style: 'thin' },
                     bottom: { style: 'thin' },
@@ -296,6 +304,7 @@ function createStyledWorksheet(data) {
             if (row === 0) {
                 worksheet[cellRef].s.font.bold = true;
                 worksheet[cellRef].s.fill = { fgColor: { rgb: 'EFEFEF' } };
+                worksheet[cellRef].s.alignment.horizontal = 'center';
             }
         }
     }
