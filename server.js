@@ -135,127 +135,91 @@ function releaseLock() {
     }
 }
 
-// Function to update Excel file with retry mechanism
+// Function to update Excel file
 async function updateExcelFile(newData) {
     const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
-    const maxRetries = 3;
-    let attempt = 0;
+    let workbook;
+    let existingData = [];
 
-    while (attempt < maxRetries) {
-        try {
-            await acquireLock();
-            
-            let workbook;
-            let existingData = [];
-
-            // Check if file exists
-            if (fsSync.existsSync(filePath)) {
-                console.log('Reading existing Excel file');
-                workbook = XLSX.readFile(filePath);
-                if (workbook.Sheets['Reservations']) {
-                    existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
-                }
-            } else {
-                console.log('Creating new Excel file');
-                workbook = XLSX.utils.book_new();
-            }
-
-            // Add new data with unique ID
-            const dataWithId = {
-                ...newData,
-                id: uuidv4(),
-                submissionDate: new Date().toISOString()
-            };
-            existingData.push(dataWithId);
-
-            // Format the data for Excel
-            const formattedData = existingData.map(row => ({
-                'Submission Date': new Date(row.submissionDate).toLocaleString(),
-                'First Name': row.firstName,
-                'Last Name': row.lastName,
-                'Birthday': new Date(row.birthday).toLocaleString().split(',')[0],
-                'Phone': row.phone,
-                'Address': row.address,
-                'Neighbourhood': row.neighbourhood,
-                'Budget': row.budget + ' fr',
-                'Pickup Date': new Date(row.pickupDate).toLocaleString(),
-                'Return Date': new Date(row.returnDate).toLocaleString(),
-                'Pickup Location': row.pickupLocation,
-                'Specific Location': row.specificLocation,
-                'Passport File': row.passportFile,
-                'License File': row.licenseFile,
-                'Reservation ID': row.id
-            }));
-
-            // Create a new worksheet
-            const worksheet = XLSX.utils.json_to_sheet(formattedData);
-
-            // Set column widths
-            const cols = [
-                { wch: 20 }, // Submission Date
-                { wch: 15 }, // First Name
-                { wch: 15 }, // Last Name
-                { wch: 12 }, // Birthday
-                { wch: 15 }, // Phone
-                { wch: 30 }, // Address
-                { wch: 20 }, // Neighbourhood
-                { wch: 12 }, // Budget
-                { wch: 20 }, // Pickup Date
-                { wch: 20 }, // Return Date
-                { wch: 15 }, // Pickup Location
-                { wch: 30 }, // Specific Location
-                { wch: 30 }, // Passport File
-                { wch: 30 }, // License File
-                { wch: 40 }  // Reservation ID
-            ];
-            worksheet['!cols'] = cols;
-
-            // Remove existing worksheet if it exists
+    try {
+        // Check if file exists and read existing data
+        if (fsSync.existsSync(filePath)) {
+            console.log('Reading existing Excel file');
+            workbook = XLSX.readFile(filePath);
             if (workbook.Sheets['Reservations']) {
-                delete workbook.Sheets['Reservations'];
-                const idx = workbook.SheetNames.indexOf('Reservations');
-                if (idx !== -1) {
-                    workbook.SheetNames.splice(idx, 1);
-                }
+                existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
             }
-
-            // Add the worksheet to the workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
-            
-            // Save to a temporary file first
-            const tempFilePath = `${filePath}.temp.xlsx`;
-            await XLSX.writeFile(workbook, tempFilePath);
-            
-            // Rename temp file to actual file (atomic operation)
-            if (fsSync.existsSync(filePath)) {
-                await fs.unlink(filePath); // Delete existing file if it exists
-            }
-            await fs.rename(tempFilePath, filePath);
-            
-            console.log('Excel file updated successfully');
-            return dataWithId;
-
-        } catch (error) {
-            attempt++;
-            console.error(`Error updating Excel file (attempt ${attempt}/${maxRetries}):`, error);
-            
-            // Clean up temp file if it exists
-            const tempFilePath = `${filePath}.temp.xlsx`;
-            if (fsSync.existsSync(tempFilePath)) {
-                try {
-                    await fs.unlink(tempFilePath);
-                } catch (cleanupError) {
-                    console.error('Error cleaning up temp file:', cleanupError);
-                }
-            }
-
-            if (attempt === maxRetries) {
-                throw new Error('Failed to update reservation data after multiple attempts');
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        } finally {
-            releaseLock();
+        } else {
+            console.log('Creating new Excel file');
+            workbook = XLSX.utils.book_new();
         }
+
+        // Add new data to existing data
+        existingData.push({
+            ...newData,
+            submissionDate: new Date().toISOString()
+        });
+
+        // Create a new worksheet with the updated data
+        const worksheet = XLSX.utils.json_to_sheet(existingData);
+
+        // Set column widths
+        const cols = [
+            { wch: 20 }, // Submission Date
+            { wch: 15 }, // First Name
+            { wch: 15 }, // Last Name
+            { wch: 12 }, // Birthday
+            { wch: 15 }, // Phone
+            { wch: 30 }, // Address
+            { wch: 20 }, // Neighbourhood
+            { wch: 12 }, // Budget
+            { wch: 20 }, // Pickup Date
+            { wch: 20 }, // Return Date
+            { wch: 15 }, // Pickup Location
+            { wch: 30 }, // Specific Location
+            { wch: 30 }, // Passport File
+            { wch: 30 }  // License File
+        ];
+        worksheet['!cols'] = cols;
+
+        // Remove existing sheet if it exists
+        if (workbook.Sheets['Reservations']) {
+            delete workbook.Sheets['Reservations'];
+            const idx = workbook.SheetNames.indexOf('Reservations');
+            if (idx !== -1) {
+                workbook.SheetNames.splice(idx, 1);
+            }
+        }
+
+        // Add the worksheet to the workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
+
+        // Ensure the uploads directory exists
+        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
+        if (!fsSync.existsSync(uploadsDir)) {
+            fsSync.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Write to a temporary file first
+        const tempFilePath = `${filePath}.temp`;
+        XLSX.writeFile(workbook, tempFilePath);
+
+        // Rename temp file to actual file (atomic operation)
+        fsSync.renameSync(tempFilePath, filePath);
+        console.log('Excel file updated successfully');
+
+    } catch (error) {
+        console.error('Error updating Excel file:', error);
+        // Clean up temp file if it exists
+        const tempFilePath = `${filePath}.temp`;
+        if (fsSync.existsSync(tempFilePath)) {
+            try {
+                fsSync.unlinkSync(tempFilePath);
+            } catch (cleanupError) {
+                console.error('Error cleaning up temp file:', cleanupError);
+            }
+        }
+        throw new Error('Failed to update reservation data');
     }
 }
 
