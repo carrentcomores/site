@@ -59,92 +59,107 @@
     </nav>
 
     <div class="dashboard-container">
-        <div id="dashboardContent" style="display: none;">
-            <!-- Statistics Row -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="stats-card bg-primary text-white">
-                        <h5>Total Reservations</h5>
-                        <h2 id="totalReservations">0</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card bg-success text-white">
-                        <h5>Active Rentals</h5>
-                        <h2 id="activeRentals">0</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card bg-warning text-white">
-                        <h5>Upcoming Pickups</h5>
-                        <h2 id="upcomingPickups">0</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card bg-info text-white">
-                        <h5>Returns Today</h5>
-                        <h2 id="returnsToday">0</h2>
+        <div class="container-fluid mt-4">
+            <!-- Login Message -->
+            <div id="loginMessage" class="text-center">
+                <h2>Admin Dashboard</h2>
+                <div class="row justify-content-center">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Admin Login</h5>
+                                <div class="mb-3">
+                                    <input type="password" class="form-control" id="adminKey" placeholder="Enter Admin Key">
+                                </div>
+                                <button onclick="loadDashboard()" class="btn btn-primary">Login</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Search and Filters -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="search-bar">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search reservations...">
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" style="display: none;">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Reservations</h5>
+                                <h2 id="totalReservations">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Active Rentals</h5>
+                                <h2 id="activeRentals">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body">
+                                <h5 class="card-title">Pickups Today</h5>
+                                <h2 id="upcomingPickups">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Returns Today</h5>
+                                <h2 id="returnsToday">0</h2>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="filters d-flex gap-2">
-                        <select id="statusFilter" class="form-select">
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="upcoming">Upcoming</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                        <select id="dateFilter" class="form-select">
-                            <option value="all">All Dates</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                        </select>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title">Reservations</h5>
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search...">
+                                <select class="form-select" id="statusFilter">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                <input type="date" class="form-control" id="dateFilter">
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Car Type</th>
+                                        <th>Pickup Date</th>
+                                        <th>Return Date</th>
+                                        <th>Submission Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reservationsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Reservations Table -->
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Customer</th>
-                            <th>Pickup Date</th>
-                            <th>Return Date</th>
-                            <th>Status</th>
-                            <th>Location</th>
-                            <th>Budget</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservationsTableBody">
-                        <!-- Reservations will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Loading Spinner -->
-            <div id="loadingSpinner" class="loading-spinner">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
 
-        <!-- Login Message -->
-        <div id="loginMessage" class="text-center mt-5">
-            <h3>Please enter admin key to access the dashboard</h3>
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
     </div>
 
@@ -281,44 +296,33 @@
         }
 
         function populateReservationsTable(reservations) {
-            const tbody = document.getElementById('reservationsTableBody');
-            tbody.innerHTML = '';
+            const tableBody = document.getElementById('reservationsTableBody');
+            tableBody.innerHTML = '';
 
-            reservations.forEach((reservation, index) => {
-                const pickup = new Date(reservation.pickupDate);
-                const returnDate = new Date(reservation.returnDate);
-                const now = new Date();
+            reservations.forEach(reservation => {
+                const row = document.createElement('tr');
+                
+                // Format dates
+                const pickupDate = new Date(reservation.pickupDate).toLocaleDateString();
+                const returnDate = new Date(reservation.returnDate).toLocaleDateString();
+                const submissionDate = new Date(reservation.submissionDate).toLocaleDateString();
 
-                let status;
-                let statusClass;
-                if (pickup > now) {
-                    status = 'Upcoming';
-                    statusClass = 'bg-warning';
-                } else if (returnDate < now) {
-                    status = 'Completed';
-                    statusClass = 'bg-secondary';
-                } else {
-                    status = 'Active';
-                    statusClass = 'bg-success';
-                }
-
-                const row = `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${reservation.firstName} ${reservation.lastName}</td>
-                        <td>${formatDate(pickup)}</td>
-                        <td>${formatDate(returnDate)}</td>
-                        <td><span class="badge ${statusClass}">${status}</span></td>
-                        <td>${reservation.pickupLocation}</td>
-                        <td>${reservation.budget}</td>
-                        <td>
-                            <button class="btn btn-sm btn-info" onclick="viewDetails(${index})">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </td>
-                    </tr>
+                row.innerHTML = `
+                    <td>${reservation.name || '-'}</td>
+                    <td>${reservation.phone || '-'}</td>
+                    <td>${reservation.email || '-'}</td>
+                    <td>${reservation.carType || '-'}</td>
+                    <td>${pickupDate}</td>
+                    <td>${returnDate}</td>
+                    <td>${submissionDate}</td>
+                    <td>${reservation.status || 'Pending'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewDetails(${reservation.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
                 `;
-                tbody.innerHTML += row;
+                tableBody.appendChild(row);
             });
         }
 
@@ -366,7 +370,7 @@
             const now = new Date();
             
             Array.from(rows).forEach(row => {
-                const pickupDate = new Date(row.cells[2].textContent);
+                const pickupDate = new Date(row.cells[4].textContent);
                 let show = true;
                 
                 switch(filter) {
