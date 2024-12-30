@@ -3,17 +3,19 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises; 
+const fsSync = require('fs'); 
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Enable CORS for all origins during development
 app.use(cors({
-    origin: '*', // Allow all origins temporarily
+    origin: '*', 
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: false // Changed to false since we're using '*'
+    credentials: false
 }));
 
 // Log all requests for debugging
@@ -35,22 +37,22 @@ app.use((req, res, next) => {
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
+    destination: async function (req, file, cb) {
         const uploadDir = process.env.UPLOAD_DIR || 'uploads';
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir);
+        try {
+            await fs.mkdir(uploadDir, { recursive: true });
+            cb(null, uploadDir);
+        } catch (error) {
+            cb(error);
         }
-        cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        // Sanitize filename
-        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-        cb(null, `${Date.now()}-${sanitizedFilename}`);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
     }
 });
 
 const fileFilter = (req, file, cb) => {
-    // Accept only specific file types
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
@@ -63,7 +65,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: 5 * 1024 * 1024 
     }
 });
 
@@ -91,49 +93,90 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Function to update Excel file
+// Semaphore for Excel file access
+let isExcelFileLocked = false;
+const pendingWrites = [];
+
+// Function to acquire lock
+async function acquireLock(timeout = 5000) {
+    const startTime = Date.now();
+    
+    while (isExcelFileLocked) {
+        if (Date.now() - startTime > timeout) {
+            throw new Error('Timeout waiting for Excel file access');
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    isExcelFileLocked = true;
+}
+
+// Function to release lock
+function releaseLock() {
+    isExcelFileLocked = false;
+    if (pendingWrites.length > 0) {
+        const nextWrite = pendingWrites.shift();
+        nextWrite();
+    }
+}
+
+// Function to update Excel file with retry mechanism
 async function updateExcelFile(newData) {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
-    let workbook;
-    let existingData = [];
+    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
+    const maxRetries = 3;
+    let attempt = 0;
 
-    try {
-        // Check if file exists
-        if (fs.existsSync(filePath)) {
-            console.log('Reading existing Excel file');
-            workbook = XLSX.readFile(filePath);
-            if (workbook.Sheets['Reservations']) {
-                existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
+    while (attempt < maxRetries) {
+        try {
+            await acquireLock();
+            
+            let workbook;
+            let existingData = [];
+
+            // Check if file exists
+            if (fsSync.existsSync(filePath)) {
+                console.log('Reading existing Excel file');
+                workbook = XLSX.readFile(filePath);
+                if (workbook.Sheets['Reservations']) {
+                    existingData = XLSX.utils.sheet_to_json(workbook.Sheets['Reservations']);
+                }
+            } else {
+                console.log('Creating new Excel file');
+                workbook = XLSX.utils.book_new();
             }
-        } else {
-            console.log('Creating new Excel file');
-            workbook = XLSX.utils.book_new();
+
+            // Add new data with unique ID
+            const dataWithId = {
+                ...newData,
+                id: uuidv4(),
+                submissionDate: new Date().toISOString()
+            };
+            existingData.push(dataWithId);
+
+            // Create worksheet and save
+            const worksheet = createStyledWorksheet(existingData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
+            
+            // Save to a temporary file first
+            const tempFilePath = `${filePath}.temp`;
+            XLSX.writeFile(workbook, tempFilePath);
+            
+            // Rename temp file to actual file
+            await fs.rename(tempFilePath, filePath);
+            
+            console.log('Excel file updated successfully');
+            return dataWithId;
+
+        } catch (error) {
+            attempt++;
+            console.error(`Error updating Excel file (attempt ${attempt}/${maxRetries}):`, error);
+            if (attempt === maxRetries) {
+                throw new Error('Failed to update reservation data after multiple attempts');
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        } finally {
+            releaseLock();
         }
-
-        // Add new data to existing data
-        existingData.push(newData);
-        console.log('Adding new reservation:', newData);
-
-        // Create a new worksheet with the updated data
-        const worksheet = createStyledWorksheet(existingData);
-
-        // Add the worksheet to the workbook
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
-
-        // Ensure the uploads directory exists
-        const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Save the workbook
-        console.log('Saving Excel file to:', filePath);
-        XLSX.writeFile(workbook, filePath);
-        console.log('Excel file updated successfully');
-
-    } catch (error) {
-        console.error('Error updating Excel file:', error);
-        throw new Error('Failed to update reservation data');
     }
 }
 
@@ -231,16 +274,13 @@ function createStyledWorksheet(data) {
     return worksheet;
 }
 
-// Handle form submission
+// Handle form submission with queue
 app.post('/submit', upload.fields([
     { name: 'passport', maxCount: 1 },
     { name: 'license', maxCount: 1 }
 ]), async (req, res) => {
     try {
-        // Log incoming request data for debugging
-        console.log('Received form data:', req.body);
-        console.log('Received files:', req.files);
-
+        // Validate files
         if (!req.files || !req.files.passport || !req.files.license) {
             return res.status(400).json({ 
                 success: false, 
@@ -248,65 +288,50 @@ app.post('/submit', upload.fields([
             });
         }
 
-        // Basic data validation
-        const validateField = (field, name) => {
-            if (!field || field.trim() === '') {
-                throw new Error(`${name} is required`);
-            }
-            return field.trim();
-        };
-
+        // Process form data
         const formData = {
-            firstName: validateField(req.body.firstName, 'First name'),
-            lastName: validateField(req.body.lastName, 'Last name'),
-            phone: validateField(req.body.phone, 'Phone number'),
-            address: validateField(req.body.address, 'Address'),
-            neighbourhood: validateField(req.body.neighbourhood, 'Neighbourhood'),
-            budget: validateField(req.body.budget, 'Budget'),
-            pickupLocation: validateField(req.body.pickupLocation, 'Pickup location'),
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            birthday: req.body.birthday,
+            phone: req.body.phone,
+            address: req.body.address,
+            neighbourhood: req.body.neighbourhood,
+            budget: req.body.budget,
+            pickupDate: req.body.pickupDate,
+            returnDate: req.body.returnDate,
+            pickupLocation: req.body.pickupLocation,
             specificLocation: req.body.specificLocation || '',
             passportFile: req.files.passport[0].filename,
             licenseFile: req.files.license[0].filename
         };
 
-        // Date validation and formatting
-        const validateDate = (dateString, fieldName) => {
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) {
-                    throw new Error(`Invalid ${fieldName}`);
+        // Add to Excel file with queuing
+        const savedData = await new Promise((resolve, reject) => {
+            const processWrite = async () => {
+                try {
+                    const result = await updateExcelFile(formData);
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
                 }
-                return date.toISOString();
-            } catch (error) {
-                throw new Error(`Invalid ${fieldName}`);
+            };
+
+            if (isExcelFileLocked) {
+                pendingWrites.push(processWrite);
+            } else {
+                processWrite();
             }
-        };
+        });
 
-        formData.birthday = validateDate(req.body.birthday, 'birthday');
-        formData.pickupDate = validateDate(req.body.pickupDate, 'pickup date');
-        formData.returnDate = validateDate(req.body.returnDate, 'return date');
-        formData.submissionDate = new Date().toISOString();
+        res.json({ 
+            success: true, 
+            message: 'Reservation submitted successfully',
+            reservationId: savedData.id
+        });
 
-        // Additional date validations
-        const pickup = new Date(formData.pickupDate);
-        const returnDate = new Date(formData.returnDate);
-        const now = new Date();
-
-        if (pickup < now) {
-            throw new Error('Pickup date cannot be in the past');
-        }
-
-        if (returnDate < pickup) {
-            throw new Error('Return date must be after pickup date');
-        }
-
-        console.log('Processed form data:', formData);
-
-        await updateExcelFile(formData);
-        res.json({ success: true, message: 'Data saved successfully' });
     } catch (error) {
         console.error('Error processing submission:', error);
-        res.status(400).json({ 
+        res.status(500).json({ 
             success: false, 
             message: error.message || 'Error processing your request'
         });
@@ -332,10 +357,10 @@ const authenticateAdmin = (req, res, next) => {
 
 // Download Excel file endpoint
 app.get('/download-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
     
     try {
-        if (!fs.existsSync(filePath)) {
+        if (!fsSync.existsSync(filePath)) {
             return res.status(404).json({
                 error: 'Not Found',
                 message: 'No reservations file exists yet'
@@ -360,10 +385,10 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
 
 // List all reservations endpoint
 app.get('/list-reservations', authenticateAdmin, (req, res) => {
-    const filePath = process.env.EXCEL_FILE || 'reservations.xlsx';
+    const filePath = process.env.EXCEL_FILE || 'uploads/reservations.xlsx';
     
     try {
-        if (!fs.existsSync(filePath)) {
+        if (!fsSync.existsSync(filePath)) {
             return res.json({ reservations: [] });
         }
 
