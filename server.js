@@ -213,15 +213,32 @@ app.post('/update-status', authenticateAdmin, async (req, res) => {
 
         // Convert sheet to JSON
         let reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        console.log('Total reservations:', reservations.length);
         
-        // Find and update the reservation
-        const reservationIndex = reservations.findIndex(r => r.id === id);
+        // Find the reservation by submission date and name since we don't have IDs
+        const reservationIndex = reservations.findIndex(r => {
+            // Convert the generated ID back to the original format
+            const submissionDate = r.submissionDate ? new Date(r.submissionDate).getTime() : '';
+            const firstName = r.firstName || '';
+            const generatedId = `${submissionDate}-${firstName}`.toLowerCase();
+            
+            console.log('Comparing IDs:', {
+                generatedId,
+                providedId: id,
+                match: generatedId === id.toLowerCase()
+            });
+            
+            return generatedId === id.toLowerCase();
+        });
+
         if (reservationIndex === -1) {
+            console.log('Reservation not found. Available reservations:', reservations);
             throw new Error('Reservation not found');
         }
 
         // Update the status
         reservations[reservationIndex].status = status;
+        console.log('Updated reservation:', reservations[reservationIndex]);
 
         // Convert back to sheet
         const newSheet = XLSX.utils.json_to_sheet(reservations);

@@ -316,8 +316,10 @@
                 const pickupDate = new Date(reservation.pickupDate).toLocaleDateString();
                 const returnDate = new Date(reservation.returnDate).toLocaleDateString();
 
-                // Generate a unique ID if none exists
-                const reservationId = reservation.id || `reservation-${index}`;
+                // Generate a unique ID using submission date and name
+                const submissionDate = reservation.submissionDate ? new Date(reservation.submissionDate).getTime() : '';
+                const firstName = reservation.firstName || '';
+                const reservationId = `${submissionDate}-${firstName}`;
 
                 row.innerHTML = `
                     <td>${reservation.firstName || '-'}</td>
