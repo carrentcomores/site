@@ -155,44 +155,32 @@
         document.getElementById('rentalForm').addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            const formData = new FormData(this);
             const rentalData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                phone: formData.get('phone'),
-                pickupDate: formData.get('pickupDate'),
-                returnDate: formData.get('returnDate'),
-                budget: formData.get('budget'),
-                carType: formData.get('carType'),
-                mark: formData.get('mark'),
-                model: formData.get('model'),
-                color: formData.get('color')
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                phone: document.getElementById('phone').value,
+                budget: document.getElementById('budget').value,
+                carType: document.getElementById('carType').value,
+                pickupDate: document.getElementById('pickupDate').value,
+                returnDate: document.getElementById('returnDate').value,
             };
 
-            // Send rental data to the server or store in sessionStorage
-            try {
-                const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rentals', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(rentalData)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Error response:', errorData);
-                    console.error('Error status:', response.status);
-                    console.error('Error status text:', response.statusText);
-                    throw new Error(errorData.message || 'Failed to rent car');
-                }
+            const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rentals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(rentalData)
+            });
+
+            if (response.ok) {
                 const data = await response.json();
                 console.log('Rental successful:', data);
                 alert('Car rented successfully!');
-                // After successfully renting a car, redirect to the rental statistics page
                 window.location.href = 'https://carrentcomores-reservation-api.onrender.com/rental-statistics-dashboard.html';
-            } catch (error) {
-                console.error('Error renting car:', error);
-                alert('Failed to rent car: ' + error.message);
+            } else {
+                const errorData = await response.json();
+                alert('Failed to rent car: ' + errorData.message);
             }
         });
     </script>
