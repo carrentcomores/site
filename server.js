@@ -425,6 +425,57 @@ async function updateExcelFile(newData) {
     }
 }
 
+// Define rental rates for each car type
+const rentalRates = {
+    Sedan: 50,  // Rate per day
+    SUV: 70,
+    Truck: 90
+};
+
+// Rent car endpoint
+app.post('/rent-car', async (req, res) => {
+    const { firstName, lastName, phone, budget, carType, pickupDate, returnDate, mark, model, color } = req.body;
+    console.log('Renting car:', { firstName, lastName, phone, budget, carType, pickupDate, returnDate, mark, model, color });
+
+    try {
+        // Calculate the number of rental days
+        const pickup = new Date(pickupDate);
+        const returnDateObj = new Date(returnDate);
+        const rentalDays = Math.ceil((returnDateObj - pickup) / (1000 * 60 * 60 * 24));
+
+        if (rentalDays <= 0) {
+            return res.status(400).json({ success: false, message: 'Return date must be after pickup date.' });
+        }
+
+        // Calculate total payment
+        const rate = rentalRates[carType];
+        if (!rate) {
+            return res.status(400).json({ success: false, message: 'Invalid car type.' });
+        }
+        const totalPayment = rentalDays * rate;
+
+        // Validate budget
+        if (budget < totalPayment) {
+            return res.status(400).json({ success: false, message: `Insufficient budget. Total payment is KMF ${totalPayment}.` });
+        }
+
+        // Here you would typically save the rental information
+        // For now, we'll just log it
+        console.log(`Total payment for ${firstName} ${lastName}: KMF ${totalPayment}`);
+
+        // Respond with the rental information
+        res.json({ 
+            success: true, 
+            message: `Car rented successfully. Total payment: KMF ${totalPayment}`,
+            rentalInfo: { firstName, lastName, phone, carType, pickupDate, returnDate, mark, model, color, totalPayment }
+        });
+
+    } catch (error) {
+        console.error('Error renting car:', error);
+        res.status(500).json({ success: false, message: 'Error renting car: ' + error.message });
+    }
+});
+
 // Handle form submission
 app.post('/submit', upload.fields([
     { name: 'passport', maxCount: 1 },
@@ -540,6 +591,69 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
             error: 'Internal Server Error',
             message: 'Error downloading reservations file'
         });
+    }
+});
+
+// Rental statistics endpoint
+app.get('/rental-statistics', async (req, res) => {
+    try {
+        const filePath = getExcelFilePath();
+        if (!fsSync.existsSync(filePath)) {
+            throw new Error('Reservations file not found');
+        }
+
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = 'Reservations';
+        
+        if (!workbook.Sheets[sheetName]) {
+            throw new Error('Reservations sheet not found');
+        }
+
+        // Convert sheet to JSON
+        let reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        
+        const monthlyTotals = {};
+        let totalRentals = 0;
+        const customerDetails = [];
+
+        reservations.forEach(reservation => {
+            const pickupDate = new Date(reservation.pickupDate);
+            const returnDate = new Date(reservation.returnDate);
+            const rentalDays = Math.ceil((returnDate - pickupDate) / (1000 * 60 * 60 * 24));
+            const totalPayment = rentalDays * rentalRates[reservation.carType];
+
+            // Calculate the month key
+            const monthKey = `${pickupDate.getFullYear()}-${pickupDate.getMonth() + 1}`;
+
+            // Add to monthly total
+            if (!monthlyTotals[monthKey]) {
+                monthlyTotals[monthKey] = 0;
+            }
+            monthlyTotals[monthKey] += totalPayment;
+            totalRentals += totalPayment;
+
+            // Collect customer details
+            customerDetails.push({
+                firstName: reservation.firstName,
+                lastName: reservation.lastName,
+                phone: reservation.phone,
+                totalPayment,
+                status: returnDate < new Date() ? 'Returned' : 'Rented'
+            });
+        });
+
+        // Prepare response data
+        const responseData = {
+            monthlyTotals,
+            totalRentals,
+            customerDetails
+        };
+
+        res.json({ success: true, data: responseData });
+
+    } catch (error) {
+        console.error('Error fetching rental statistics:', error);
+        res.status(500).json({ success: false, message: 'Error fetching rental statistics: ' + error.message });
     }
 });
 
