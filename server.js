@@ -433,12 +433,22 @@ const rentalRates = {
 };
 
 // Route to rent a car
-app.post('/api/rentals', async (req, res) => {
+app.post('/api/rentals', (req, res) => {
     const rentalData = req.body; // Get rental data from request body
     console.log('Rental data received:', rentalData);
 
+    const filePath = getExcelFilePath(); // Function to get the path of the Excel file
+
+    // Check if the Excel file exists, create it if it does not
+    if (!fs.existsSync(filePath)) {
+        const newWorkbook = XLSX.utils.book_new(); // Create a new workbook
+        const newSheet = XLSX.utils.json_to_sheet([]); // Create a new sheet
+        XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Reservations'); // Append the sheet to the workbook
+        XLSX.writeFile(newWorkbook, filePath); // Write the new workbook to the file
+        console.log('Created new Excel file:', filePath);
+    }
+
     // Load existing reservations from the Excel file
-    const filePath = getExcelFilePath();
     const workbook = XLSX.readFile(filePath);
     const sheetName = 'Reservations';
 
@@ -465,6 +475,10 @@ app.post('/api/rentals', async (req, res) => {
 // Route to fetch rental statistics
 app.get('/api/rental-statistics', (req, res) => {
     const filePath = getExcelFilePath(); // Function to get the path of the Excel file
+    if (!fs.existsSync(filePath)) {
+        return res.json({ success: true, total: 0, reservations: [] });
+    }
+
     const workbook = XLSX.readFile(filePath);
     const sheetName = 'Reservations';
 
