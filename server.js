@@ -475,7 +475,10 @@ app.post('/api/rentals', (req, res) => {
 // Route to fetch rental statistics
 app.get('/api/rental-statistics', (req, res) => {
     const filePath = getExcelFilePath(); // Function to get the path of the Excel file
+
+    // Check if the Excel file exists
     if (!fs.existsSync(filePath)) {
+        console.log('Excel file does not exist, returning empty statistics.');
         return res.json({ success: true, total: 0, reservations: [] });
     }
 
@@ -484,6 +487,7 @@ app.get('/api/rental-statistics', (req, res) => {
 
     // Check if the sheet exists
     if (!workbook.Sheets[sheetName]) {
+        console.log('No Reservations sheet found, returning empty statistics.');
         return res.json({ success: true, total: 0, reservations: [] });
     }
 

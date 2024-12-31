@@ -172,21 +172,27 @@
             }
 
             async function fetchRentalData() {
-                try {
-                    const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rental-statistics');
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log('Rental statistics:', data);
-                        // Logic to display the statistics in the UI
-                    } else {
-                        console.error('Failed to load rental data:', data.message);
-                    }
-                } catch (error) {
-                    console.error('Error fetching rental data:', error);
+                const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rental-statistics');
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Rental statistics:', data);
+                    const rentalDataDiv = document.getElementById('rental-data');
+                    rentalDataDiv.innerHTML = ''; // Clear existing content
+
+                    // Display each reservation
+                    data.reservations.forEach(reservation => {
+                        const reservationElement = document.createElement('div');
+                        reservationElement.innerText = `Name: ${reservation.firstName} ${reservation.lastName}, Phone: ${reservation.phone}, Car Type: ${reservation.carType}, Pickup Date: ${reservation.pickupDate}, Return Date: ${reservation.returnDate}`;
+                        rentalDataDiv.appendChild(reservationElement);
+                    });
+                } else {
+                    console.error('Failed to load rental data:', data.message);
+                    document.getElementById('rental-data').innerText = 'Failed to load rental data.';
                 }
             }
 
-            window.onload = fetchRentalData; // Call the function to fetch rental statistics when the page loads
+            // Call the function to fetch rental statistics when the page loads
+            window.onload = fetchRentalData;
         </script>
     </div>
 </body>
