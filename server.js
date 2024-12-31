@@ -433,47 +433,20 @@ const rentalRates = {
 };
 
 // Rent car endpoint
-app.post('/rent-car', async (req, res) => {
-    const { firstName, lastName, phone, budget, carType, pickupDate, returnDate, mark, model, color } = req.body;
-    console.log('Renting car:', { firstName, lastName, phone, budget, carType, pickupDate, returnDate, mark, model, color });
+app.post('/api/rentals', (req, res) => {
+    const rentalData = req.body; // Get rental data from request body
+    // Logic to process rental data (e.g., save to a database or file)
+    console.log('Rental data received:', rentalData);
+    // Here you would typically save the data to a database or perform other logic
+    res.json({ success: true, message: 'Car rented successfully!' });
+});
 
-    try {
-        // Calculate the number of rental days
-        const pickup = new Date(pickupDate);
-        const returnDateObj = new Date(returnDate);
-        const rentalDays = Math.ceil((returnDateObj - pickup) / (1000 * 60 * 60 * 24));
-
-        if (rentalDays <= 0) {
-            return res.status(400).json({ success: false, message: 'Return date must be after pickup date.' });
-        }
-
-        // Calculate total payment
-        const rate = rentalRates[carType];
-        if (!rate) {
-            return res.status(400).json({ success: false, message: 'Invalid car type.' });
-        }
-        const totalPayment = rentalDays * rate;
-
-        // Validate budget
-        if (budget < totalPayment) {
-            return res.status(400).json({ success: false, message: `Insufficient budget. Total payment is KMF ${totalPayment}.` });
-        }
-
-        // Here you would typically save the rental information
-        // For now, we'll just log it
-        console.log(`Total payment for ${firstName} ${lastName}: KMF ${totalPayment}`);
-
-        // Respond with the rental information
-        res.json({ 
-            success: true, 
-            message: `Car rented successfully. Total payment: KMF ${totalPayment}`,
-            rentalInfo: { firstName, lastName, phone, carType, pickupDate, returnDate, mark, model, color, totalPayment }
-        });
-
-    } catch (error) {
-        console.error('Error renting car:', error);
-        res.status(500).json({ success: false, message: 'Error renting car: ' + error.message });
-    }
+// Route to fetch rental statistics
+app.get('/api/rental-statistics', (req, res) => {
+    // Logic to fetch rental statistics
+    const statistics = {}; // Replace with actual logic to fetch statistics
+    console.log('Fetching rental statistics');
+    res.json({ success: true, statistics });
 });
 
 // Handle form submission
