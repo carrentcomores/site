@@ -434,68 +434,78 @@ const rentalRates = {
 
 // Route to rent a car
 app.post('/api/rentals', (req, res) => {
-    const rentalData = req.body; // Get rental data from request body
-    console.log('Rental data received:', rentalData);
+    try {
+        const rentalData = req.body; // Get rental data from request body
+        console.log('Rental data received:', rentalData);
 
-    const filePath = getExcelFilePath(); // Function to get the path of the Excel file
+        const filePath = getExcelFilePath(); // Function to get the path of the Excel file
 
-    // Check if the Excel file exists, create it if it does not
-    if (!fs.existsSync(filePath)) {
-        const newWorkbook = XLSX.utils.book_new(); // Create a new workbook
-        const newSheet = XLSX.utils.json_to_sheet([]); // Create a new sheet
-        XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Reservations'); // Append the sheet to the workbook
-        XLSX.writeFile(newWorkbook, filePath); // Write the new workbook to the file
-        console.log('Created new Excel file:', filePath);
+        // Check if the Excel file exists, create it if it does not
+        if (!fs.existsSync(filePath)) {
+            const newWorkbook = XLSX.utils.book_new(); // Create a new workbook
+            const newSheet = XLSX.utils.json_to_sheet([]); // Create a new sheet
+            XLSX.utils.book_append_sheet(newWorkbook, newSheet, 'Reservations'); // Append the sheet to the workbook
+            XLSX.writeFile(newWorkbook, filePath); // Write the new workbook to the file
+            console.log('Created new Excel file:', filePath);
+        }
+
+        // Load existing reservations from the Excel file
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = 'Reservations';
+
+        // Check if the sheet exists
+        if (!workbook.Sheets[sheetName]) {
+            console.log('No Reservations sheet found, creating a new one.');
+            workbook.Sheets[sheetName] = XLSX.utils.json_to_sheet([]); // Create a new sheet if it doesn't exist
+        }
+
+        // Get existing reservations
+        const reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        // Add new rental data to the reservations
+        reservations.push(rentalData);
+
+        // Write back to the Excel file
+        const newSheet = XLSX.utils.json_to_sheet(reservations);
+        workbook.Sheets[sheetName] = newSheet;
+        XLSX.writeFile(workbook, filePath);
+
+        res.json({ success: true, message: 'Car rented successfully!' });
+    } catch (error) {
+        console.error('Error processing rental submission:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error: ' + error.message });
     }
-
-    // Load existing reservations from the Excel file
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = 'Reservations';
-
-    // Check if the sheet exists
-    if (!workbook.Sheets[sheetName]) {
-        console.log('No Reservations sheet found, creating a new one.');
-        workbook.Sheets[sheetName] = XLSX.utils.json_to_sheet([]); // Create a new sheet if it doesn't exist
-    }
-
-    // Get existing reservations
-    const reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    // Add new rental data to the reservations
-    reservations.push(rentalData);
-
-    // Write back to the Excel file
-    const newSheet = XLSX.utils.json_to_sheet(reservations);
-    workbook.Sheets[sheetName] = newSheet;
-    XLSX.writeFile(workbook, filePath);
-
-    res.json({ success: true, message: 'Car rented successfully!' });
 });
 
 // Route to fetch rental statistics
 app.get('/api/rental-statistics', (req, res) => {
-    const filePath = getExcelFilePath(); // Function to get the path of the Excel file
+    try {
+        const filePath = getExcelFilePath(); // Function to get the path of the Excel file
 
-    // Check if the Excel file exists
-    if (!fs.existsSync(filePath)) {
-        console.log('Excel file does not exist, returning empty statistics.');
-        return res.json({ success: true, total: 0, reservations: [] });
+        // Check if the Excel file exists
+        if (!fs.existsSync(filePath)) {
+            console.log('Excel file does not exist, returning empty statistics.');
+            return res.json({ success: true, total: 0, reservations: [] });
+        }
+
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = 'Reservations';
+
+        // Check if the sheet exists
+        if (!workbook.Sheets[sheetName]) {
+            console.log('No Reservations sheet found, returning empty statistics.');
+            return res.json({ success: true, total: 0, reservations: [] });
+        }
+
+        // Get existing reservations
+        const reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        console.log(`Found ${reservations.length} reservations`);
+
+        res.json({ success: true, total: reservations.length, reservations });
+    } catch (error) {
+        console.error('Error fetching rental statistics:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error: ' + error.message });
     }
-
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = 'Reservations';
-
-    // Check if the sheet exists
-    if (!workbook.Sheets[sheetName]) {
-        console.log('No Reservations sheet found, returning empty statistics.');
-        return res.json({ success: true, total: 0, reservations: [] });
-    }
-
-    // Get existing reservations
-    const reservations = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    console.log(`Found ${reservations.length} reservations`);
-
-    res.json({ success: true, total: reservations.length, reservations });
 });
 
 // Handle form submission
