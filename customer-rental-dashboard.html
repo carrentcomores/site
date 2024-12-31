@@ -179,7 +179,11 @@
                     body: JSON.stringify(rentalData)
                 });
                 if (!response.ok) {
-                    throw new Error('Failed to rent car');
+                    const errorData = await response.json();
+                    console.error('Error response:', errorData);
+                    console.error('Error status:', response.status);
+                    console.error('Error status text:', response.statusText);
+                    throw new Error(errorData.message || 'Failed to rent car');
                 }
                 const data = await response.json();
                 console.log('Rental successful:', data);
