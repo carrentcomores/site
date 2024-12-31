@@ -58,28 +58,7 @@
         </div>
     </nav>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="rental-statistics-dashboard.html">Rental Statistics</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="customer-rental-dashboard.html">Customer Rental</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="dashboard.html">View Reservations</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="dashboard-container" style="margin-left: 0;">
+    <div class="dashboard-container">
         <div class="container-fluid mt-4">
             <!-- Login Message -->
             <div id="loginMessage" class="text-center">
@@ -90,9 +69,9 @@
                             <div class="card-body">
                                 <h5 class="card-title">Admin Login</h5>
                                 <div class="mb-3">
-                                    <input type="password" class="form-control" id="adminKeyInput" placeholder="Enter Admin Key">
+                                    <input type="password" class="form-control" id="adminKey" placeholder="Enter Admin Key">
                                 </div>
-                                <button id="loginButton" class="btn btn-primary">Login</button>
+                                <button onclick="loadDashboard()" class="btn btn-primary">Login</button>
                             </div>
                         </div>
                     </div>
@@ -191,13 +170,13 @@
         window.addEventListener('DOMContentLoaded', function() {
             const storedKey = sessionStorage.getItem('adminKey');
             if (storedKey) {
-                document.getElementById('adminKeyInput').value = storedKey;
+                document.getElementById('adminKey').value = storedKey;
                 loadDashboard();
             }
         });
 
         async function loadDashboard() {
-            const inputKey = 'CarRental269@';
+            const inputKey = document.getElementById('adminKey').value || sessionStorage.getItem('adminKey');
             if (!inputKey) {
                 alert('Please enter the admin key');
                 return;
@@ -396,48 +375,6 @@
             document.getElementById('upcomingPickups').textContent = upcomingPickups;
             document.getElementById('returnsToday').textContent = returnsToday;
         }
-
-        // Handle login button click
-        const loginButton = document.getElementById('loginButton');
-        loginButton.addEventListener('click', async function() {
-            const inputKey = 'CarRental269@';
-            if (!inputKey) {
-                alert('Please enter the admin key');
-                return;
-            }
-            try {
-                document.getElementById('loadingSpinner').style.display = 'block';
-                console.log('Loading dashboard...');
-
-                // First verify the key
-                const response = await fetch(`${BASE_URL}/list-reservations?key=${encodeURIComponent(inputKey)}`);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to load reservations');
-                }
-
-                const data = await response.json();
-                console.log('Received data:', data);
-
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to load reservations');
-                }
-
-                // Store the key in session storage if valid
-                sessionStorage.setItem('adminKey', inputKey);
-                document.getElementById('loginMessage').style.display = 'none';
-                document.getElementById('dashboardContent').style.display = 'block';
-                updateDashboardStats(data.reservations || []);
-                populateReservationsTable(data.reservations || []);
-                startAutoRefresh();
-            } catch (error) {
-                console.error('Error:', error);
-                sessionStorage.removeItem('adminKey');
-                alert(error.message);
-            } finally {
-                document.getElementById('loadingSpinner').style.display = 'none';
-            }
-        });
 
         // Add event listeners for filtering
         document.getElementById('statusFilter').addEventListener('change', function(e) {
