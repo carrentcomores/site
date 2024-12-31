@@ -161,18 +161,21 @@
                 displayCustomerDetails([]);
             }
 
-            // Function to display sample rental statistics
+            // Function to fetch actual rental statistics
             function displaySampleRentalStatistics() {
-                const responseData = {
-                    monthlyTotals: {},
-                    totalRentals: 0,
-                    customerDetails: []
-                };
-                displayRentalStatistics(responseData);
+                fetch('/list-reservations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            displayRentalStatistics(data);
+                        } else {
+                            console.error('Failed to load rental statistics:', data.message);
+                        }
+                    });
             }
 
             async function fetchRentalData() {
-                const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rental-statistics');
+                const response = await fetch('/list-reservations');
                 const data = await response.json();
                 if (data.success) {
                     console.log('Rental statistics:', data);

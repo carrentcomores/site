@@ -147,6 +147,27 @@
             document.getElementById('finalPrice').innerText = finalPrice > 0 ? finalPrice.toFixed(2) : '0.00';
         }
 
+        // Function to submit rental data
+        function submitRentalData() {
+            const rentalData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                phone: document.getElementById('phone').value,
+                carType: document.getElementById('carType').value,
+                pickupDate: document.getElementById('pickupDate').value,
+                returnDate: document.getElementById('returnDate').value
+            };
+
+            fetch('/submit-rental', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(rentalData)
+            }).then(response => response.json())
+              .then(data => console.log(data.message));
+        }
+
         // Add event listeners to inputs
         document.getElementById('pickupDate').addEventListener('input', updateFinalPrice);
         document.getElementById('returnDate').addEventListener('input', updateFinalPrice);

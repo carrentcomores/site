@@ -513,6 +513,14 @@ app.post('/submit', upload.fields([
     }
 });
 
+// Endpoint to receive rental data
+app.post('/submit-rental', (req, res) => {
+    const rentalData = req.body;
+    console.log('Received rental data:', rentalData);
+    // Logic to save rentalData to Excel or database
+    res.json({ success: true, message: 'Rental data saved successfully.' });
+});
+
 // Download Excel file endpoint
 app.get('/download-reservations', authenticateAdmin, (req, res) => {
     const filePath = getExcelFilePath();
