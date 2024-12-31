@@ -84,7 +84,7 @@
         <div id="rental-data"></div>
 
         <script>
-            const BASE_URL = 'https://your-base-url.com'; // Replace with your base URL
+            const BASE_URL = 'https://carrentcomores-reservation-api.onrender.com'; // Replace with your base URL
 
             // Fetch rental statistics from the server
             async function fetchRentalStatistics() {
@@ -173,7 +173,7 @@
 
             async function fetchRentalData() {
                 try {
-                    const response = await fetch('https://carrentcomores-reservation-api.onrender.com/api/rentals'); // Adjust the endpoint as needed
+                    const response = await fetch('https://carrentcomores-reservation-api.onrender.com/rental-statistics-dashboard.html'); // Adjust the endpoint as needed
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
