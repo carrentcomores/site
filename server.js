@@ -266,7 +266,7 @@ app.post('/update-status', authenticateAdmin, async (req, res) => {
 
 // Root route - serve index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'rental-statistic.html'));
 });
 
 // Catch-all route for SPA - must be after all other routes
@@ -278,7 +278,7 @@ app.get('*', (req, res) => {
         return res.sendFile(path.join(__dirname, 'dashboard.html'));
     }
     // Otherwise, serve index.html
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'rental-statistic.html'));
 });
 
 // Health check endpoint
