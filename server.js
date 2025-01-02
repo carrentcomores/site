@@ -22,7 +22,7 @@ const { MongoClient } = require('mongodb');
 const app = express();
 
 // MongoDB connection string
-const uri = 'mongodb+srv://carrentcomore:CarRental269@cluster.mongodb.net/<dbname>?retryWrites=true&w=majority';
+const uri = 'mongodb+srv://carrentcomore:CarRental269@cluster.mongodb.net/myDatabase?retryWrites=true&w=majority';
 const client = new MongoClient(uri);
 
 // Middleware
