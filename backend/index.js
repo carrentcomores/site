@@ -14,6 +14,7 @@ const dataFilePath = path.join(__dirname, 'rentalData.json');
 
 // Endpoint to save rental data
 app.post('/api/rentals', (req, res) => {
+    console.log('Received rental data:', req.body); // Log incoming data
     const rentalData = req.body;
     fs.readFile(dataFilePath, 'utf8', (err, data) => {
         if (err) {
@@ -25,6 +26,7 @@ app.post('/api/rentals', (req, res) => {
             if (err) {
                 return res.status(500).send('Error saving data.');
             }
+            console.log('Rental data saved successfully.'); // Log success
             res.status(201).send('Rental data saved successfully.');
         });
     });
