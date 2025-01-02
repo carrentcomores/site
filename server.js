@@ -558,11 +558,13 @@ app.post('/api/saveClientData', (req, res) => {
 
 // Error handling for 404
 app.use((req, res) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: 'The requested resource was not found on this server',
-        path: req.path
-    });
+    res.status(404).json({ message: 'Not Found' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
 
 // Global error handler
