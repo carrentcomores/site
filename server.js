@@ -17,13 +17,8 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
-const { MongoClient } = require('mongodb');
 
 const app = express();
-
-// MongoDB connection string
-const uri = 'mongodb+srv://carrentcomore:CarRental269@cluster0.10omh.mongodb.net/myDatabase?retryWrites=true&w=majority';
-const client = new MongoClient(uri);
 
 // Middleware
 app.use(express.json()); // Parse JSON bodies
@@ -550,38 +545,6 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
     }
 });
 
-// API endpoint to save client data
-app.post('/api/saveClientData', async (req, res) => {
-    const clientData = req.body; // Get client data from request body
-
-    try {
-        const collection = client.db().collection('clients');
-        await collection.insertOne(clientData);
-        console.log('Received client data:', clientData);
-
-        // Respond with a success message
-        res.status(200).json({ message: 'Client data saved successfully!' });
-    } catch (error) {
-        console.error('Error saving client data:', error);
-        res.status(500).json({ message: 'Error saving client data' });
-    }
-});
-
-// API endpoint to retrieve client data
-app.get('/api/getClientData', async (req, res) => {
-    try {
-        const collection = client.db().collection('clients');
-        const clients = await collection.find({}).toArray();
-        console.log('Retrieved client data:', clients);
-
-        // Respond with the client data
-        res.status(200).json(clients);
-    } catch (error) {
-        console.error('Error retrieving client data:', error);
-        res.status(500).json({ message: 'Error retrieving client data' });
-    }
-});
-
 // Error handling for 404
 app.use((req, res) => {
     res.status(404).json({ message: 'Not Found' });
@@ -602,15 +565,6 @@ app.use((err, req, res, next) => {
             ? 'An internal server error occurred' 
             : err.message
     });
-});
-
-// Connect to MongoDB
-client.connect(err => {
-    if (err) {
-        console.error('MongoDB connection error:', err);
-        return;
-    }
-    console.log('Connected to MongoDB');
 });
 
 // Start the server
