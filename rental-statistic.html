@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Statistic Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #e9ecef;
+        }
+        header {
+            background: #343a40;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            border-radius: 5px;
+        }
+        h2 {
+            margin: 20px 0;
+            font-size: 1.8em;
+            color: #343a40;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #d1ecf1;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .highlight {
+            background-color: #ffcccc;
+        }
+        table.client tbody tr {
+            background-color: white;
+        }
+        table.client tbody tr.highlight {
+            background-color: #ffcccc; /* Highlight color for 'Not Returned' status */
+        }
+        table.client tbody tr:hover {
+            background-color: #d1ecf1;
+        }
+        input[type="date"] {
+            width: 80%;
+            padding: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            font-size: 16px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s;
+        }
+        input[type="date"]:focus {
+            border-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Rental Statistic Dashboard</h1>
+    </header>
+    <main>
+        <section id="statistics">
+            <h2>Total Income: <span id="totalIncome">0 KMF</span></h2>
+            <h2>Client Activity</h2>
+            <form id="clientForm">
+                <input type="text" name="firstName" placeholder="First Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="lastName" placeholder="Last Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="phoneNumber" placeholder="Phone Number" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="vehicleModel" placeholder="Vehicle Maker & Model" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="date" name="pickupDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="date" name="returnDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="number" name="pricePerDay" placeholder="Price Per Day" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <button type="submit" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);" onmouseover="this.style.backgroundColor='#45a049';" onmouseout="this.style.backgroundColor='#4CAF50';">Add Client</button>
+            </form>
+            <table class="client" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">First Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Last Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Phone Number</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Vehicle Model</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Pickup Date</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Return Date</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Price Per Day</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Total Price</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Status</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Client data will be populated here -->
+                </tbody>
+            </table>
+            <h2>Monthly Income</h2>
+            <table class="monthlyincome" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Year</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Month</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Total Income</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Client Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Monthly income data will be populated here -->
+                </tbody>
+            </table>
+            <h2>Customer Ranking</h2>
+            <table class="customer-ranking" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">First Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Last Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Number of Rentals</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Customer ranking data will be populated here -->
+                </tbody>
+            </table>
+            <script>
+                // Function to extract data from the table
+                function getTableData() {
+                const prices = [];
+                const rows = document.querySelectorAll('#statistics table.client tbody tr');
+                let totalIncome = 0;
+
+                rows.forEach(row => {
+                    const priceCell = row.cells[7].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                    const priceValue = parseFloat(priceCell); // Convert to number
+
+                    console.log('Raw price value:', priceCell); // Debugging log
+
+                    if (!isNaN(priceValue)) { // Check if priceValue is a valid number
+                        totalIncome += priceValue; // Add to total income
+                        prices.push(priceValue); // Store price for further use
+                    } else {
+                        console.error('Invalid price value:', priceCell); // Log invalid price
+                    }
+                });
+
+                return { prices, totalIncome };
+            }
+
+                const { prices, totalIncome } = getTableData();
+                const totalIncomeLabel = document.getElementById('totalIncome');
+                totalIncomeLabel.textContent = `Total Income: ${totalIncome} KMF`;
+            </script>
+            <script>
+                // Function to update status based on return date and current date
+                function updateStatusOnDateChange() {
+                    const rows = document.querySelectorAll('#statistics table.client tbody tr');
+                    const currentDate = new Date('2025-01-01T05:53:33+03:00'); // Use the provided current date
+                    rows.forEach(row => {
+                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDate = new Date(returnDateInput.value);
+                        const statusCell = row.cells[8].querySelector('.status');
+
+                        if (returnDate <= currentDate) {
+                            statusCell.textContent = 'Returned';
+                            row.classList.remove('highlight');
+                        } else {
+                            statusCell.textContent = 'Not Returned';
+                            row.classList.add('highlight');
+                        }
+                    });
+                }
+
+                // Attach event listener to return date inputs
+                document.querySelectorAll('input[type="date"]').forEach(input => {
+                    input.addEventListener('change', updateStatusOnDateChange);
+                });
+                updateStatusOnDateChange(); // Initial update
+            </script>
+            <script>
+                // Function to format number with commas
+                function formatNumberWithCommas(x) {
+                    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                }
+
+                // Function to update price based on price per day and rental duration
+                function updatePrice() {
+                    const rows = document.querySelectorAll('#statistics table.client tbody tr');
+                    rows.forEach(row => {
+                        const pickupDate = new Date(row.cells[4].textContent.split('/').reverse().join('-')); // Convert to Date object
+                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDate = new Date(returnDateInput.value);
+                        const pricePerDayInput = row.cells[6].querySelector('input[type="number"]');
+                        const pricePerDay = parseFloat(pricePerDayInput.value);
+
+                        const timeDiff = returnDate - pickupDate;
+                        const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert milliseconds to days
+                        const totalPrice = daysRented * pricePerDay;
+
+                        row.cells[7].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
+
+                    });
+                    updateTotalIncome(); // Update total income
+                }
+
+                // Function to update total income based on prices in the table
+                function updateTotalIncome() {
+                    const rows = document.querySelectorAll('#statistics table.client tbody tr');
+                    let totalIncome = 0;
+                    rows.forEach(row => {
+                        const priceCell = row.cells[7].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                        totalIncome += parseFloat(priceCell) || 0; // Add to total income
+                    });
+                    const totalIncomeLabel = document.getElementById('totalIncome');
+                    totalIncomeLabel.textContent = `${formatNumberWithCommas(totalIncome)} KMF`;
+                    console.log('Total Income Updated:', totalIncome); // Debugging statement
+                }
+
+                // Attach event listeners to price per day and return date inputs
+                document.querySelectorAll('input[type="number"]').forEach(input => {
+                    input.addEventListener('change', updatePrice);
+                });
+                document.querySelectorAll('input[type="date"]').forEach(input => {
+                    input.addEventListener('change', updatePrice);
+                });
+                updatePrice(); // Initial update
+            </script>
+            <script>
+                // Function to calculate monthly income
+                function calculateMonthlyIncome() {
+                    const clientTable = document.querySelector('.client tbody'); // Target the client table
+                    const monthlyIncomeTable = document.querySelector('.monthlyincome tbody'); // Target the monthly income table
+                    const rows = clientTable.querySelectorAll('tr');
+                    const incomeData = {};
+
+                    rows.forEach(row => {
+                        const pickupDate = new Date(row.cells[4].innerText); // Pickup Date
+                        const pricePerDay = parseFloat(row.cells[6].innerText); // Price Per Day
+                        const year = pickupDate.getFullYear();
+                        const month = pickupDate.toLocaleString('default', { month: 'long' }); // Get month name
+
+                        const key = `${year}-${month}`;
+                        if (!incomeData[key]) {
+                            incomeData[key] = { totalIncome: 0, clientCount: 0 };
+                        }
+                        // Calculate total price based on the number of days rented
+                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDate = new Date(returnDateInput.value);
+                        const daysRented = Math.ceil((returnDate - pickupDate) / (3600 * 24));
+                        incomeData[key].totalIncome += daysRented * pricePerDay;
+                        incomeData[key].clientCount += 1; // Increment client count
+                    });
+
+                    monthlyIncomeTable.innerHTML = ''; // Clear existing data
+
+                    for (const [key, data] of Object.entries(incomeData)) {
+                        const [year, month] = key.split('-');
+                        const newRow = monthlyIncomeTable.insertRow();
+                        newRow.insertCell(0).innerText = year;
+                        newRow.insertCell(1).innerText = month;
+                        newRow.insertCell(2).innerText = formatNumberWithCommas(data.totalIncome) + ' KMF'; // Update price cell
+                        newRow.insertCell(3).innerText = data.clientCount; // Display client count
+                    }
+                }
+                calculateMonthlyIncome(); // Call the function to populate the table
+            </script>
+            <script>
+                // Function to calculate customer ranking based on phone numbers
+                function calculateCustomerRanking() {
+                    const clientTable = document.querySelector('.client tbody'); // Target the client table
+                    const rows = clientTable.querySelectorAll('tr');
+                    const customerData = {};
+
+                    rows.forEach(row => {
+                        const firstName = row.cells[0].innerText;
+                        const lastName = row.cells[1].innerText;
+                        const phoneNumber = row.cells[2].innerText;
+                        const pickupDate = new Date(row.cells[4].innerText); // Pickup Date
+                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDate = new Date(returnDateInput.value); // Return Date
+
+                        const daysRented = Math.ceil((returnDate - pickupDate) / (1000 * 3600 * 24)); // Calculate days rented
+
+                        // Initialize or update customer data
+                        if (!customerData[phoneNumber]) {
+                            customerData[phoneNumber] = {
+                                firstName: firstName,
+                                lastName: lastName,
+                                numberOfRentals: 1,
+                                totalDuration: daysRented
+                            };
+                        } else {
+                            customerData[phoneNumber].numberOfRentals += 1;
+                            customerData[phoneNumber].totalDuration += daysRented; // Sum the duration
+                        }
+                    });
+
+                    // Convert customerData to an array and sort by number of rentals and then by total duration
+                    const sortedCustomers = Object.values(customerData).sort((a, b) => {
+                        if (b.numberOfRentals === a.numberOfRentals) {
+                            return b.totalDuration - a.totalDuration; // Sort by duration if rentals are equal
+                        }
+                        return b.numberOfRentals - a.numberOfRentals; // Sort by number of rentals
+                    });
+
+                    // Populate the customer ranking table
+                    const rankingTableBody = document.querySelector('.customer-ranking tbody');
+                    rankingTableBody.innerHTML = ''; // Clear existing data
+
+                    sortedCustomers.forEach(data => {
+                        const newRow = rankingTableBody.insertRow();
+                        newRow.insertCell(0).innerText = data.firstName;
+                        newRow.insertCell(1).innerText = data.lastName;
+                        newRow.insertCell(2).innerText = data.numberOfRentals;
+                        newRow.insertCell(3).innerText = data.totalDuration; // Include total duration
+                    });
+                }
+
+                // Call the function to calculate customer ranking
+                calculateCustomerRanking();
+            </script>
+            <script>
+                // Function to save client data to the API
+                function saveClientData() {
+                    const clientData = []; // Array to hold client data
+
+                    // Gather data from the client table
+                    const rows = document.querySelectorAll('#statistics table.client tbody tr');
+                    rows.forEach(row => {
+                        const firstName = row.cells[0].innerText;
+                        const lastName = row.cells[1].innerText;
+                        const phoneNumber = row.cells[2].innerText;
+                        const vehicleModel = row.cells[3].innerText;
+                        const pickupDate = row.cells[4].innerText;
+                        const returnDate = row.cells[5].querySelector('input[type="date"]').value;
+                        const pricePerDay = parseFloat(row.cells[6].innerText.replace(' KMF', '').replace(/,/g, ''));
+                        const totalPrice = parseFloat(row.cells[7].innerText.replace(' KMF', '').replace(/,/g, ''));
+
+                        // Push client data into the array
+                        clientData.push({
+                            firstName,
+                            lastName,
+                            phoneNumber,
+                            vehicleModel,
+                            pickupDate,
+                            returnDate,
+                            pricePerDay,
+                            totalPrice
+                        });
+                    });
+
+                    // Post the data to your API
+                    fetch('https://carrentcomores-reservation-api.onrender.com/api/saveClientData', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clientData),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                        // Optionally, you can update the UI or notify the user
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+                }
+
+                // Call this function whenever you want to save the client data
+                saveClientData();
+            </script>
+            <script>
+                document.getElementById('clientForm').addEventListener('submit', function(event) {
+                    event.preventDefault(); // Prevent form submission
+                    const formData = new FormData(event.target);
+                    const pickupDate = new Date(formData.get('pickupDate')); // Get pickup date
+                    const returnDate = new Date(formData.get('returnDate')); // Get return date
+                    const pricePerDay = parseFloat(formData.get('pricePerDay')); // Get price per day
+
+                    const timeDiff = returnDate - pickupDate;
+                    const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Calculate number of days
+                    const totalPrice = daysRented * pricePerDay; // Calculate total price
+
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td>${formData.get('firstName')}</td>
+                        <td>${formData.get('lastName')}</td>
+                        <td>${formData.get('phoneNumber')}</td>
+                        <td>${formData.get('vehicleModel')}</td>
+                        <td>${formData.get('pickupDate')}</td>
+                        <td><input type="date" value="${formData.get('returnDate')}" /></td>
+                        <td>${formatNumberWithCommas(pricePerDay)} KMF</td>
+                        <td>${formatNumberWithCommas(totalPrice)} KMF</td>
+                        <td><span class="status">Not Returned</span></td>
+                        <td><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
+                    `;
+
+                    // Prepend the new row to the table
+                    const clientTableBody = document.querySelector('#statistics table.client tbody');
+                    clientTableBody.prepend(newRow);
+
+                    // Highlight the row if status is Not Returned
+                    const statusCell = newRow.querySelector('.status');
+                    if (statusCell.textContent === 'Not Returned') {
+                        newRow.classList.add('highlight');
+                    }
+                    
+                    // Clear the input fields after adding the client
+                    event.target.reset();
+
+                    // Add event listener for return date change
+                    const returnDateInput = newRow.querySelector('input[type="date"]');
+                    returnDateInput.addEventListener('change', function() {
+                        const updatedReturnDate = new Date(returnDateInput.value);
+                        const updatedTimeDiff = updatedReturnDate - pickupDate;
+                        const updatedDaysRented = Math.ceil(updatedTimeDiff / (1000 * 3600 * 24));
+                        const updatedTotalPrice = updatedDaysRented * pricePerDay;
+                        newRow.cells[7].textContent = formatNumberWithCommas(updatedTotalPrice) + ' KMF'; // Update price cell
+
+                        // Update status based on return date
+                        const currentDate = new Date('2025-01-01T06:53:33+03:00'); // Use the provided current date
+                        if (updatedReturnDate <= currentDate) {
+                            statusCell.textContent = 'Returned';
+                            newRow.classList.remove('highlight');
+                        } else {
+                            statusCell.textContent = 'Not Returned';
+                            newRow.classList.add('highlight');
+                        }
+
+                        updateTotalIncome(); // Update total income
+                        calculateMonthlyIncome(); // Update monthly income
+                        calculateCustomerRanking(); // Update customer ranking
+                    });
+
+                    // Add event listener for delete button
+                    newRow.querySelector('.deleteBtn').addEventListener('click', function() {
+                        newRow.remove(); // Remove the row from the table
+                        updateTotalIncome(); // Update total income
+                        calculateMonthlyIncome(); // Update monthly income
+                        calculateCustomerRanking(); // Update customer ranking
+                    });
+
+                    // Update total income
+                    updateTotalIncome();
+                    calculateMonthlyIncome(); // Update monthly income
+                    calculateCustomerRanking(); // Update customer ranking
+                });
+            </script>
+        </section>
+    </main>
+</body>
+</html>
