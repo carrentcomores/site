@@ -16,6 +16,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: false
 }));
+app.use(bodyParser.json()); // Parse JSON bodies
 
 // Serve static files - order matters!
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -541,6 +543,17 @@ app.get('/download-reservations', authenticateAdmin, (req, res) => {
             message: 'Error downloading reservations file'
         });
     }
+});
+
+// API endpoint to save client data
+app.post('/api/saveClientData', (req, res) => {
+    const clientData = req.body; // Get client data from request body
+
+    // TODO: Save clientData to your database
+    console.log('Received client data:', clientData);
+
+    // Respond with a success message
+    res.status(200).json({ message: 'Client data saved successfully!' });
 });
 
 // Error handling for 404
