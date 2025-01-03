@@ -77,6 +77,14 @@
         input[type="date"]:focus {
             border-color: #45a049;
         }
+        @media print {
+            button[onclick="printPage()"] {
+                display: none; /* Hide the print button when printing */
+            }
+            .delete-column {
+                display: none; /* Hide the delete column when printing */
+            }
+        }
     </style>
 </head>
 <body>
@@ -85,6 +93,7 @@
     </header>
     <main>
         <section id="statistics">
+            <button onclick="printPage()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px;">Print</button>
             <h2>Total Income: <span id="totalIncome">0 KMF</span></h2>
             <h2>Client Activity</h2>
             <form id="clientForm">
@@ -92,6 +101,7 @@
                 <input type="text" name="lastName" placeholder="Last Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="text" name="phoneNumber" placeholder="Phone Number" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="text" name="vehicleModel" placeholder="Vehicle Maker & Model" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="vehiclePlate" placeholder="Vehicle Plate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="date" name="pickupDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="date" name="returnDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="number" name="pricePerDay" placeholder="Price Per Day" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
@@ -104,12 +114,13 @@
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Last Name</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Phone Number</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Vehicle Model</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Vehicle Plate</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Pickup Date</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Return Date</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Price Per Day</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Total Price</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Status</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Delete</th>
+                        <th class="delete-column" style="border: 1px solid #4CAF50; padding: 8px;">Delete</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -152,7 +163,7 @@
                 let totalIncome = 0;
 
                 rows.forEach(row => {
-                    const priceCell = row.cells[7].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                    const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
                     const priceValue = parseFloat(priceCell); // Convert to number
 
                     console.log('Raw price value:', priceCell); // Debugging log
@@ -176,11 +187,11 @@
                 // Function to update status based on return date and current date
                 function updateStatusOnDateChange() {
                     const rows = document.querySelectorAll('#statistics table.client tbody tr');
-                    const currentDate = new Date('2025-01-01T05:53:33+03:00'); // Use the provided current date
+                    const currentDate = new Date('2025-01-03T06:12:37+03:00'); // Use the provided current date
                     rows.forEach(row => {
-                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value);
-                        const statusCell = row.cells[8].querySelector('.status');
+                        const statusCell = row.cells[9].querySelector('.status');
 
                         if (returnDate <= currentDate) {
                             statusCell.textContent = 'Returned';
@@ -208,17 +219,17 @@
                 function updatePrice() {
                     const rows = document.querySelectorAll('#statistics table.client tbody tr');
                     rows.forEach(row => {
-                        const pickupDate = new Date(row.cells[4].textContent.split('/').reverse().join('-')); // Convert to Date object
-                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const pickupDate = new Date(row.cells[5].textContent.split('/').reverse().join('-')); // Convert to Date object
+                        const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value);
-                        const pricePerDayInput = row.cells[6].querySelector('input[type="number"]');
+                        const pricePerDayInput = row.cells[7].querySelector('input[type="number"]');
                         const pricePerDay = parseFloat(pricePerDayInput.value);
 
                         const timeDiff = returnDate - pickupDate;
                         const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert milliseconds to days
                         const totalPrice = daysRented * pricePerDay;
 
-                        row.cells[7].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
+                        row.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
 
                     });
                     updateTotalIncome(); // Update total income
@@ -229,7 +240,7 @@
                     const rows = document.querySelectorAll('#statistics table.client tbody tr');
                     let totalIncome = 0;
                     rows.forEach(row => {
-                        const priceCell = row.cells[7].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                        const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
                         totalIncome += parseFloat(priceCell) || 0; // Add to total income
                     });
                     const totalIncomeLabel = document.getElementById('totalIncome');
@@ -255,8 +266,8 @@
                     const incomeData = {};
 
                     rows.forEach(row => {
-                        const pickupDate = new Date(row.cells[4].innerText); // Pickup Date
-                        const pricePerDay = parseFloat(row.cells[6].innerText); // Price Per Day
+                        const pickupDate = new Date(row.cells[5].innerText); // Pickup Date
+                        const pricePerDay = parseFloat(row.cells[7].innerText); // Price Per Day
                         const year = pickupDate.getFullYear();
                         const month = pickupDate.toLocaleString('default', { month: 'long' }); // Get month name
 
@@ -265,7 +276,7 @@
                             incomeData[key] = { totalIncome: 0, clientCount: 0 };
                         }
                         // Calculate total price based on the number of days rented
-                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value);
                         const daysRented = Math.ceil((returnDate - pickupDate) / (3600 * 24));
                         incomeData[key].totalIncome += daysRented * pricePerDay;
@@ -296,8 +307,8 @@
                         const firstName = row.cells[0].innerText;
                         const lastName = row.cells[1].innerText;
                         const phoneNumber = row.cells[2].innerText;
-                        const pickupDate = new Date(row.cells[4].innerText); // Pickup Date
-                        const returnDateInput = row.cells[5].querySelector('input[type="date"]');
+                        const pickupDate = new Date(row.cells[5].innerText); // Pickup Date
+                        const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value); // Return Date
 
                         const daysRented = Math.ceil((returnDate - pickupDate) / (1000 * 3600 * 24)); // Calculate days rented
@@ -350,6 +361,7 @@
                         lastName: formData.get('lastName'),
                         phoneNumber: formData.get('phoneNumber'),
                         vehicleModel: formData.get('vehicleModel'),
+                        vehiclePlate: formData.get('vehiclePlate'),
                         pickupDate: formData.get('pickupDate'),
                         returnDate: formData.get('returnDate'),
                         pricePerDay: parseFloat(formData.get('pricePerDay')), // Ensure it's a number
@@ -387,12 +399,13 @@
                                     <td>${client.lastName}</td>
                                     <td>${client.phoneNumber}</td>
                                     <td>${client.vehicleModel}</td>
+                                    <td>${client.vehiclePlate}</td>
                                     <td>${client.pickupDate}</td>
                                     <td><input type="date" value="${client.returnDate}" /></td>
                                     <td>${formatNumberWithCommas(client.pricePerDay)} KMF</td>
                                     <td>${formatNumberWithCommas(client.totalPrice)} KMF</td>
                                     <td><span class="status">Not Returned</span></td>
-                                    <td><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
+                                    <td class="delete-column"><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
                                 `;
                             });
                         })
@@ -420,12 +433,13 @@
                         <td>${formData.get('lastName')}</td>
                         <td>${formData.get('phoneNumber')}</td>
                         <td>${formData.get('vehicleModel')}</td>
+                        <td>${formData.get('vehiclePlate')}</td>
                         <td>${formData.get('pickupDate')}</td>
                         <td><input type="date" value="${formData.get('returnDate')}" /></td>
                         <td>${formatNumberWithCommas(pricePerDay)} KMF</td>
                         <td>${formatNumberWithCommas(totalPrice)} KMF</td>
                         <td><span class="status">Not Returned</span></td>
-                        <td><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
+                        <td class="delete-column"><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
                     `;
 
                     // Prepend the new row to the table
@@ -448,10 +462,10 @@
                         const updatedTimeDiff = updatedReturnDate - pickupDate;
                         const updatedDaysRented = Math.ceil(updatedTimeDiff / (1000 * 3600 * 24));
                         const updatedTotalPrice = updatedDaysRented * pricePerDay;
-                        newRow.cells[7].textContent = formatNumberWithCommas(updatedTotalPrice) + ' KMF'; // Update price cell
+                        newRow.cells[8].textContent = formatNumberWithCommas(updatedTotalPrice) + ' KMF'; // Update price cell
 
                         // Update status based on return date
-                        const currentDate = new Date('2025-01-01T06:53:33+03:00'); // Use the provided current date
+                        const currentDate = new Date('2025-01-03T06:00:00+03:00'); // Use the provided current date
                         if (updatedReturnDate <= currentDate) {
                             statusCell.textContent = 'Returned';
                             newRow.classList.remove('highlight');
@@ -478,6 +492,23 @@
                     calculateMonthlyIncome(); // Update monthly income
                     calculateCustomerRanking(); // Update customer ranking
                 });
+            </script>
+            <script>
+                function printPage() {
+                    // Hide the client input section and the add client button
+                    const clientInputSection = document.getElementById('clientForm'); 
+                    const addClientButton = document.querySelector('button[type="submit"]'); 
+                    
+                    clientInputSection.style.display = 'none';
+                    addClientButton.style.display = 'none';
+
+                    // Trigger the print dialog
+                    window.print();
+
+                    // Restore the hidden elements
+                    clientInputSection.style.display = 'block';
+                    addClientButton.style.display = 'block';
+                }
             </script>
         </section>
     </main>
