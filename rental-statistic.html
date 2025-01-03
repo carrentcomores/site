@@ -123,7 +123,7 @@
                         <th class="delete-column" style="border: 1px solid #4CAF50; padding: 8px;">Delete</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="clientTable">
                     <!-- Client data will be populated here -->
                 </tbody>
             </table>
@@ -352,21 +352,106 @@
                 calculateCustomerRanking();
             </script>
             <script>
+                // Function to save client data to local storage
+                function saveClientData(clientData) {
+                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    clients.push(clientData);
+                    localStorage.setItem('clients', JSON.stringify(clients));
+                }
+            
+                // Function to load client data from local storage
+                function loadClientData() {
+                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clientTable = document.getElementById('clientTable');
+                    clientTable.innerHTML = ''; // Clear existing rows
+                    clients.forEach(client => {
+                        const row = clientTable.insertRow();
+                        Object.entries(client).forEach(([key, value]) => {
+                            const cell = row.insertCell();
+                            if (key === 'returnDate') {
+                                const input = document.createElement('input');
+                                input.type = 'date';
+                                input.value = value;
+                                input.onchange = function() {
+                                    // Update the local storage when the return date is changed
+                                    client.returnDate = input.value;
+                                    // Recalculate total price
+                                    const pickupDate = new Date(client.pickupDate);
+                                    const returnDate = new Date(input.value);
+                                    const pricePerDay = client.pricePerDay;
+                                    client.totalPrice = (returnDate - pickupDate) / (1000 * 60 * 60 * 24) * pricePerDay;
+                                    updateClientData(client);
+                                };
+                                cell.appendChild(input);
+                            } else {
+                                cell.textContent = value;
+                            }
+                        });
+                        // Add delete button cell
+                        const deleteCell = row.insertCell();
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.style.backgroundColor = 'red';
+                        deleteButton.style.color = 'white';
+                        deleteButton.style.border = 'none';
+                        deleteButton.style.borderRadius = '5px';
+                        deleteButton.style.cursor = 'pointer';
+                        deleteButton.onclick = function() {
+                            deleteClientData(client);
+                        };
+                        deleteCell.appendChild(deleteButton);
+                    });
+                }
+
+                // Function to update client data in local storage
+                function updateClientData(updatedClient) {
+                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    clients = clients.map(client => client.firstName === updatedClient.firstName && client.lastName === updatedClient.lastName ? updatedClient : client);
+                    localStorage.setItem('clients', JSON.stringify(clients));
+                    loadClientData(); // Reload data to reflect changes
+                }
+            
+                // Function to delete client data from local storage
+                function deleteClientData(clientToDelete) {
+                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    clients = clients.filter(client => JSON.stringify(client) !== JSON.stringify(clientToDelete));
+                    localStorage.setItem('clients', JSON.stringify(clients));
+                    loadClientData(); // Reload data to reflect changes
+                }
+            
+                // Call loadClientData on page load
+                window.onload = loadClientData;
+            </script>
+            <script>
                 // Handle form submission to save client data
                 document.getElementById('clientForm').addEventListener('submit', function(event) {
                     event.preventDefault(); // Prevent default form submission
                     const formData = new FormData(event.target);
+
+                    // Get pickup date, return date, and price per day
+                    const pickupDate = formData.get('pickupDate');
+                    const returnDate = formData.get('returnDate');
+                    const pricePerDay = parseFloat(formData.get('pricePerDay'));
+
+                    // Calculate total price
+                    const totalPrice = (new Date(returnDate) - new Date(pickupDate)) / (1000 * 60 * 60 * 24) * pricePerDay;
+
+                    // Create client data object
                     const clientData = {
                         firstName: formData.get('firstName'),
                         lastName: formData.get('lastName'),
                         phoneNumber: formData.get('phoneNumber'),
                         vehicleModel: formData.get('vehicleModel'),
                         vehiclePlate: formData.get('vehiclePlate'),
-                        pickupDate: formData.get('pickupDate'),
-                        returnDate: formData.get('returnDate'),
-                        pricePerDay: parseFloat(formData.get('pricePerDay')), // Ensure it's a number
-                        totalPrice: parseFloat(formData.get('totalPrice')) // Ensure it's a number
+                        pickupDate: pickupDate,
+                        returnDate: returnDate,
+                        pricePerDay: pricePerDay,
+                        totalPrice: totalPrice, // Include total price
+                        status: 'Not Returned' // Example status
                     };
+
+                    // Save client data to local storage
+                    saveClientData(clientData);
 
                     // Send data to the server
                     fetch('/api/clients', {
@@ -379,41 +464,9 @@
                     .then(response => response.json())
                     .then(data => {
                         console.log('Success:', data);
-                        // Optionally, refresh the client list or show a success message
-                        loadClientData(); // Refresh the client data display
                     })
                     .catch((error) => console.error('Error:', error));
                 });
-
-                // Function to load client data from the server
-                function loadClientData() {
-                    fetch('/api/clients')
-                        .then(response => response.json())
-                        .then(clients => {
-                            const clientTableBody = document.querySelector('#statistics table.client tbody');
-                            clientTableBody.innerHTML = ''; // Clear existing rows
-                            clients.forEach(client => {
-                                const newRow = clientTableBody.insertRow();
-                                newRow.innerHTML = `
-                                    <td>${client.firstName}</td>
-                                    <td>${client.lastName}</td>
-                                    <td>${client.phoneNumber}</td>
-                                    <td>${client.vehicleModel}</td>
-                                    <td>${client.vehiclePlate}</td>
-                                    <td>${client.pickupDate}</td>
-                                    <td><input type="date" value="${client.returnDate}" /></td>
-                                    <td>${formatNumberWithCommas(client.pricePerDay)} KMF</td>
-                                    <td>${formatNumberWithCommas(client.totalPrice)} KMF</td>
-                                    <td><span class="status">Not Returned</span></td>
-                                    <td class="delete-column"><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
-                                `;
-                            });
-                        })
-                        .catch((error) => console.error('Error fetching client data:', error));
-                }
-
-                // Load client data when the page loads
-                window.onload = loadClientData;
             </script>
             <script>
                 document.getElementById('clientForm').addEventListener('submit', function(event) {
