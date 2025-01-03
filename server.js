@@ -567,6 +567,36 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Import the WebSocket library
+const WebSocket = require('ws');
+
+// Create a WebSocket server
+const wss = new WebSocket.Server({ port: 8080 });
+
+wss.on('connection', (ws) => {
+    console.log('New client connected');
+
+    // Send a message to the client
+    ws.send(JSON.stringify({ message: 'Welcome to the WebSocket server!' }));
+
+    // Handle incoming messages
+    ws.on('message', (message) => {
+        console.log('Received:', message);
+        // Broadcast the message to all clients
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    });
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+
+console.log('WebSocket server is running on ws://localhost:8080');
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

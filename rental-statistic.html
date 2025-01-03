@@ -510,6 +510,30 @@
                     addClientButton.style.display = 'block';
                 }
             </script>
+            <script>
+                // Connect to the WebSocket server
+                const socket = new WebSocket('ws://localhost:8080');
+
+                socket.onopen = () => {
+                    console.log('Connected to WebSocket server');
+                };
+
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    // Update the page with the received data
+                    document.getElementById('updates').innerText += '\n' + data.message;
+                };
+
+                // Function to send a message to the server
+                function sendMessage() {
+                    const message = document.getElementById('messageInput').value;
+                    socket.send(message);
+                    document.getElementById('messageInput').value = '';
+                }
+            </script>
+            <div id="updates"></div>
+            <input type="text" id="messageInput" placeholder="Type your message here...">
+            <button onclick="sendMessage()">Send</button>
         </section>
     </main>
 </body>
