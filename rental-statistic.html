@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rental Statistic Dashboard</title>
+    <title>Rental Statistic (FARHA CAR)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,7 +20,7 @@
         }
         h2 {
             margin: 20px 0;
-            font-size: 1.8em;
+            font-size: 1.2em;
             color: #343a40;
         }
         table {
@@ -40,6 +40,7 @@
             background-color: #007BFF;
             color: white;
             font-weight: bold;
+            font-size: 14px;
         }
         tr:nth-child(even) {
             background-color: #f2f2f2;
@@ -84,12 +85,22 @@
             .delete-column {
                 display: none; /* Hide the delete column when printing */
             }
+            #expenseForm, #addExpenseButton {
+                display: none;
+            }
+            #expenseTable th:last-child,
+            #expenseTable td:last-child {
+                display: none;
+            }
+            #clientForm, button[type="submit"] {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Rental Statistic Dashboard</h1>
+        <h1>Rental Statistic (FARHA CAR)</h1>
     </header>
     <main>
         <section id="statistics">
@@ -97,8 +108,8 @@
             <h2>Total Income: <span id="totalIncome">0 KMF</span></h2>
             <h2>Client Activity</h2>
             <form id="clientForm">
-                <input type="text" name="firstName" placeholder="First Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
-                <input type="text" name="lastName" placeholder="Last Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="fullName" placeholder="Full Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
+                <input type="text" name="clientID" placeholder="Client ID (NIN)" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="text" name="phoneNumber" placeholder="Phone Number" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="text" name="vehicleModel" placeholder="Vehicle Maker & Model" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="text" name="vehiclePlate" placeholder="Vehicle Plate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
@@ -110,8 +121,8 @@
             <table class="client" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
                 <thead>
                     <tr>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">First Name</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Last Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Full Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Client ID (NIN)</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Phone Number</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Vehicle Model</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Vehicle Plate</th>
@@ -145,8 +156,8 @@
             <table class="customer-ranking" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
                 <thead>
                     <tr>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">First Name</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Last Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Full Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Phone Number</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Number of Rentals</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Duration</th>
                     </tr>
@@ -155,6 +166,135 @@
                     <!-- Customer ranking data will be populated here -->
                 </tbody>
             </table>
+            <h2>Expense Report</h2>
+            <div id="expenseForm">
+                <input type="date" id="expenseDate" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
+                <select id="expenseMotif" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;">
+                    <option value="" disabled selected>Select a Motif</option>
+                    <option value="Versement Exim">Versement Exim</option>
+                    <option value="Achat de nouveau produit">Achat de nouveau produit</option>
+                    <option value="Paiement de facture">Paiement de facture</option>
+                    <option value="Autre">Autre</option>
+                </select>
+                <input type="text" id="expenseComment" placeholder="Comment" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
+                <input type="number" id="expensePrice" placeholder="Price" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
+                <button id="addExpenseButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 10px;">Add Expense</button>
+            </div>
+            <table id="expenseTable" border="1">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Motif</th>
+                        <th>Comment</th>
+                        <th>Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3">Total Expense:</td>
+                        <td id="totalExpense" style="font-size: 18px; font-weight: bold;">0 KMF</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <h2>Summary</h2>
+            <table id="summaryTable" border="1" style="margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>Printed Date</th>
+                        <th>Total Restant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="printedDate">N/A</td>
+                        <td id="summaryTotalRestant">0 KMF</td>
+                    </tr>
+                </tbody>
+            </table>
+            <script>
+                var total = 0;
+                document.getElementById('addExpenseButton').onclick = function() {
+                    var date = document.getElementById('expenseDate').value;
+                    var motif = document.getElementById('expenseMotif').value;
+                    var comment = document.getElementById('expenseComment').value;
+                    var price = document.getElementById('expensePrice').value;
+
+                    // Check if price is a valid number
+                    if (isNaN(price) || price.trim() === '') {
+                        alert('Please enter a valid price.');
+                        return;
+                    }
+
+                    // Format the price with commas and append 'KMF'
+                    var formattedPrice = parseFloat(price).toLocaleString('en-US') + ' KMF';
+
+                    // Update total expense
+                    total += parseFloat(price);
+                    document.getElementById('totalExpense').innerText = total.toLocaleString('en-US') + ' KMF';
+
+                    var table = document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+                    var newRow = table.insertRow();
+
+                    newRow.insertCell(0).innerText = date;
+                    newRow.insertCell(1).innerText = motif;
+                    newRow.insertCell(2).innerText = comment;
+                    newRow.insertCell(3).innerText = formattedPrice;
+                    newRow.insertCell(4).innerHTML = '<button style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>';
+
+                    // Clear input fields after adding
+                    document.getElementById('expenseDate').value = '';
+                    document.getElementById('expenseMotif').value = '';
+                    document.getElementById('expenseComment').value = '';
+                    document.getElementById('expensePrice').value = '';
+
+                    // Add delete button functionality
+                    newRow.querySelector('button').onclick = function() {
+                        const row = this.parentNode.parentNode;
+                        row.parentNode.removeChild(row);
+                        updateTotalExpense(); // Update total expense after deletion
+                        updateTotalRestant(); // Update total restant after deletion
+                    };
+
+                    // Update total restant after adding expense
+                    updateTotalRestant();
+                };
+
+                function updateTotalExpense() {
+                    let total = 0;
+                    const rows = document.querySelectorAll('#expenseTable tbody tr');
+                    rows.forEach(row => {
+                        const priceCell = row.cells[3]; // Assuming the price is in the fourth column
+                        const price = parseFloat(priceCell.innerText.replace(/ KMF/, '').replace(/,/g, ''));
+                        if (!isNaN(price)) {
+                            total += price;
+                        }
+                    });
+                    document.getElementById('totalExpense').innerText = total.toLocaleString('en-US') + ' KMF';
+                }
+
+                function updateTotalRestant() {
+                    const totalIncome = parseFloat(document.getElementById('totalIncome').innerText.replace(/ KMF/, '').replace(/,/g, ''));
+                    const totalExpense = parseFloat(document.getElementById('totalExpense').innerText.replace(/ KMF/, '').replace(/,/g, ''));
+                    const totalRestant = totalIncome - totalExpense;
+                    document.getElementById('summaryTotalRestant').innerText = totalRestant.toLocaleString('en-US') + ' KMF';
+                }
+            </script>
+            <script>
+                document.getElementById('expenseMotif').onchange = function() {
+                    var commentInput = document.getElementById('expenseComment');
+                    if (this.value === 'Versement Exim') {
+                        commentInput.placeholder = 'Account Number';
+                    } else if (this.value === 'Paiement de facture') {
+                        commentInput.placeholder = 'Description';
+                    } else {
+                        commentInput.placeholder = 'Comment';
+                    }
+                };
+            </script>
             <script>
                 // Function to extract data from the table
                 function getTableData() {
@@ -181,13 +321,13 @@
 
                 const { prices, totalIncome } = getTableData();
                 const totalIncomeLabel = document.getElementById('totalIncome');
-                totalIncomeLabel.textContent = `Total Income: ${totalIncome} KMF`;
+                totalIncomeLabel.textContent = `${totalIncome} KMF`;
             </script>
             <script>
                 // Function to update status based on return date and current date
                 function updateStatusOnDateChange() {
                     const rows = document.querySelectorAll('#statistics table.client tbody tr');
-                    const currentDate = new Date('2025-01-03T06:12:37+03:00'); // Use the provided current date
+                    const currentDate = new Date('2025-01-05T19:39:35+03:00'); // Updated current date
                     rows.forEach(row => {
                         const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value);
@@ -246,6 +386,7 @@
                     const totalIncomeLabel = document.getElementById('totalIncome');
                     totalIncomeLabel.textContent = `${formatNumberWithCommas(totalIncome)} KMF`;
                     console.log('Total Income Updated:', totalIncome); // Debugging statement
+                    updateTotalRestant(); // Update total restant
                 }
 
                 // Attach event listeners to price per day and return date inputs
@@ -304,26 +445,26 @@
                     const customerData = {};
 
                     rows.forEach(row => {
-                        const firstName = row.cells[0].innerText;
-                        const lastName = row.cells[1].innerText;
-                        const phoneNumber = row.cells[2].innerText;
+                        const clientID = row.cells[1].innerText; // Client ID (NIN)
+                        const fullName = row.cells[0].innerText;
+                        const phoneNumber = row.cells[2].innerText; // Phone Number
                         const pickupDate = new Date(row.cells[5].innerText); // Pickup Date
                         const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value); // Return Date
 
                         const daysRented = Math.ceil((returnDate - pickupDate) / (1000 * 3600 * 24)); // Calculate days rented
 
-                        // Initialize or update customer data
-                        if (!customerData[phoneNumber]) {
-                            customerData[phoneNumber] = {
-                                firstName: firstName,
-                                lastName: lastName,
+                        // Initialize or update customer data based on Client ID (NIN)
+                        if (!customerData[clientID]) {
+                            customerData[clientID] = {
+                                fullName: fullName,
+                                phoneNumber: phoneNumber,
                                 numberOfRentals: 1,
                                 totalDuration: daysRented
                             };
                         } else {
-                            customerData[phoneNumber].numberOfRentals += 1;
-                            customerData[phoneNumber].totalDuration += daysRented; // Sum the duration
+                            customerData[clientID].numberOfRentals++;
+                            customerData[clientID].totalDuration += daysRented; // Sum the duration
                         }
                     });
 
@@ -341,8 +482,8 @@
 
                     sortedCustomers.forEach(data => {
                         const newRow = rankingTableBody.insertRow();
-                        newRow.insertCell(0).innerText = data.firstName;
-                        newRow.insertCell(1).innerText = data.lastName;
+                        newRow.insertCell(0).innerText = data.fullName;
+                        newRow.insertCell(1).innerText = data.phoneNumber;
                         newRow.insertCell(2).innerText = data.numberOfRentals;
                         newRow.insertCell(3).innerText = data.totalDuration; // Include total duration
                     });
@@ -406,7 +547,7 @@
                 // Function to update client data in local storage
                 function updateClientData(updatedClient) {
                     let clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    clients = clients.map(client => client.firstName === updatedClient.firstName && client.lastName === updatedClient.lastName ? updatedClient : client);
+                    clients = clients.map(client => client.fullName === updatedClient.fullName && client.clientID === updatedClient.clientID ? updatedClient : client);
                     localStorage.setItem('clients', JSON.stringify(clients));
                     loadClientData(); // Reload data to reflect changes
                 }
@@ -438,8 +579,8 @@
 
                     // Create client data object
                     const clientData = {
-                        firstName: formData.get('firstName'),
-                        lastName: formData.get('lastName'),
+                        fullName: formData.get('fullName'),
+                        clientID: formData.get('clientID'),
                         phoneNumber: formData.get('phoneNumber'),
                         vehicleModel: formData.get('vehicleModel'),
                         vehiclePlate: formData.get('vehiclePlate'),
@@ -482,8 +623,8 @@
 
                     const newRow = document.createElement('tr');
                     newRow.innerHTML = `
-                        <td>${formData.get('firstName')}</td>
-                        <td>${formData.get('lastName')}</td>
+                        <td>${formData.get('fullName')}</td>
+                        <td>${formData.get('clientID')}</td>
                         <td>${formData.get('phoneNumber')}</td>
                         <td>${formData.get('vehicleModel')}</td>
                         <td>${formData.get('vehiclePlate')}</td>
@@ -513,12 +654,12 @@
                     returnDateInput.addEventListener('change', function() {
                         const updatedReturnDate = new Date(returnDateInput.value);
                         const updatedTimeDiff = updatedReturnDate - pickupDate;
-                        const updatedDaysRented = Math.ceil(updatedTimeDiff / (1000 * 3600 * 24));
+                        const updatedDaysRented = Math.ceil(updatedTimeDiff / (3600 * 24));
                         const updatedTotalPrice = updatedDaysRented * pricePerDay;
                         newRow.cells[8].textContent = formatNumberWithCommas(updatedTotalPrice) + ' KMF'; // Update price cell
 
                         // Update status based on return date
-                        const currentDate = new Date('2025-01-03T06:00:00+03:00'); // Use the provided current date
+                        const currentDate = new Date('2025-01-05T19:39:35+03:00'); // Use the provided current date
                         if (updatedReturnDate <= currentDate) {
                             statusCell.textContent = 'Returned';
                             newRow.classList.remove('highlight');
@@ -548,19 +689,11 @@
             </script>
             <script>
                 function printPage() {
-                    // Hide the client input section and the add client button
-                    const clientInputSection = document.getElementById('clientForm'); 
-                    const addClientButton = document.querySelector('button[type="submit"]'); 
-                    
-                    clientInputSection.style.display = 'none';
-                    addClientButton.style.display = 'none';
+                    // Get current date
+                    const currentDate = new Date().toLocaleDateString();
+                    document.getElementById('printedDate').innerText = currentDate;
 
-                    // Trigger the print dialog
                     window.print();
-
-                    // Restore the hidden elements
-                    clientInputSection.style.display = 'block';
-                    addClientButton.style.display = 'block';
                 }
             </script>
         </section>
