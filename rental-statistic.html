@@ -652,15 +652,17 @@
                     // Add event listener for return date change
                     const returnDateInput = newRow.querySelector('input[type="date"]');
                     returnDateInput.addEventListener('change', function() {
-                        const updatedReturnDate = new Date(returnDateInput.value);
-                        const updatedTimeDiff = updatedReturnDate - pickupDate;
-                        const updatedDaysRented = Math.ceil(updatedTimeDiff / (3600 * 24));
-                        const updatedTotalPrice = updatedDaysRented * pricePerDay;
-                        newRow.cells[8].textContent = formatNumberWithCommas(updatedTotalPrice) + ' KMF'; // Update price cell
+                        const pickupDate = new Date(formData.get('pickupDate')); // Get pickup date
+                        const returnDate = new Date(returnDateInput.value);
+                        const pricePerDay = parseFloat(formData.get('pricePerDay')); // Get price per day
+                        const timeDiff = returnDate - pickupDate;
+                        const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Calculate number of days
+                        const totalPrice = daysRented * pricePerDay; // Calculate total price
+                        newRow.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
 
                         // Update status based on return date
                         const currentDate = new Date('2025-01-05T19:39:35+03:00'); // Use the provided current date
-                        if (updatedReturnDate <= currentDate) {
+                        if (returnDate <= currentDate) {
                             statusCell.textContent = 'Returned';
                             newRow.classList.remove('highlight');
                         } else {
