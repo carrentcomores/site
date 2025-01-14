@@ -78,6 +78,20 @@
         input[type="date"]:focus {
             border-color: #45a049;
         }
+        .payment-status {
+            padding: 10px;
+            background-color: #f0f8ff; /* Light blue background */
+            border: 2px solid #4CAF50; /* Green border */
+            border-radius: 5px; /* Rounded corners */
+            font-size: 16px; /* Larger font size */
+            color: #333; /* Dark text color */
+            transition: border-color 0.3s; /* Smooth border color transition */
+        }
+
+        .payment-status:focus {
+            border-color: #007BFF; /* Change border color on focus */
+            outline: none; /* Remove default outline */
+        }
         @media print {
             button[onclick="printPage()"] {
                 display: none; /* Hide the print button when printing */
@@ -95,16 +109,77 @@
             #clientForm, button[type="submit"] {
                 display: none;
             }
+            /* Hide elements during printing */
+            #clearAllDataBtn,
+            #balanceAddForm,
+            .delete-btn,
+            .delete-column,
+            .balance-add th:last-child,
+            .balance-add td:last-child,
+            .client th:nth-last-child(2),  /* Hide Payment Status header */
+            .client td:nth-last-child(2) { /* Hide Payment Status column */
+                display: none !important;
+            }
+            
+            /* Ensure good print layout */
+            body {
+                padding: 20px;
+            }
+            
+            table {
+                page-break-inside: auto;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            thead {
+                display: table-header-group;
+            }
+            
+            tfoot {
+                display: table-footer-group;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Rental Statistic (FARHA CAR)</h1>
+        <h1>Rental Journalier (FARHA CAR)</h1>
     </header>
     <main>
         <section id="statistics">
             <button onclick="printPage()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px;">Print</button>
+            <button onclick="clearAllData()" id="clearAllDataBtn" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px; margin-left: 10px;">Clear All Data</button>
+            <h2>Balance Add</h2>
+            <form id="balanceAddForm" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <input type="date" id="balanceDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; flex: 1;">
+                <select id="balanceMotif" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; flex: 1;">
+                    <option value="" disabled selected>Select a Motif</option>
+                    <option value="Balance precedent">Balance precedent</option>
+                    <option value="Regalement de Facture">Regalement de Facture</option>
+                    <option value="Emprunt d'argent">Emprunt d'argent</option>
+                    <option value="Autre">Autre</option>
+                </select>
+                <input type="text" id="balanceComment" placeholder="Comment" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; flex: 1;">
+                <input type="number" id="balanceAmount" placeholder="Balance Amount" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; flex: 1;">
+                <button type="submit" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s;">Add Balance</button>
+            </form>
+            <table class="balance-add" style="width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: #f9f9f9;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Date</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Motif</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Comment</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Balance</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="balanceAddTableBody">
+                </tbody>
+            </table>
             <h2>Total Income: <span id="totalIncome">0 KMF</span></h2>
             <h2>Client Activity</h2>
             <form id="clientForm">
@@ -116,7 +191,7 @@
                 <input type="date" name="pickupDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="date" name="returnDate" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
                 <input type="number" name="pricePerDay" placeholder="Price Per Day" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
-                <button type="submit" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);" onmouseover="this.style.backgroundColor='#45a049';" onmouseout="this.style.backgroundColor='#4CAF50';">Add Client</button>
+                <button type="submit" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 10px;">Add Client</button>
             </form>
             <table class="client" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
                 <thead>
@@ -131,6 +206,7 @@
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Price Per Day</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Total Price</th>
                         <th style="border: 1px solid #4CAF50; padding: 8px;">Status</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px;">Payment Status</th>
                         <th class="delete-column" style="border: 1px solid #4CAF50; padding: 8px;">Delete</th>
                     </tr>
                 </thead>
@@ -177,7 +253,7 @@
                     <option value="Autre">Autre</option>
                 </select>
                 <input type="text" id="expenseComment" placeholder="Comment" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
-                <input type="number" id="expensePrice" placeholder="Price" style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
+                <input type="number" id="expensePrice" placeholder="Price" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-right: 5px;" />
                 <button id="addExpenseButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 10px;">Add Expense</button>
             </div>
             <table id="expenseTable" border="1">
@@ -303,16 +379,21 @@
                 let totalIncome = 0;
 
                 rows.forEach(row => {
-                    const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
-                    const priceValue = parseFloat(priceCell); // Convert to number
-
-                    console.log('Raw price value:', priceCell); // Debugging log
-
-                    if (!isNaN(priceValue)) { // Check if priceValue is a valid number
-                        totalIncome += priceValue; // Add to total income
-                        prices.push(priceValue); // Store price for further use
+                    const paymentStatus = row.querySelector('.payment-status').value; // Get the payment status
+                    if (paymentStatus === 'not-paid') {
+                        totalPrice = 0; // Set total price to 0 if not paid
                     } else {
-                        console.error('Invalid price value:', priceCell); // Log invalid price
+                        const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                        const priceValue = parseFloat(priceCell); // Convert to number
+
+                        console.log('Raw price value:', priceCell); // Debugging log
+
+                        if (!isNaN(priceValue)) { // Check if priceValue is a valid number
+                            totalIncome += priceValue; // Add to total income
+                            prices.push(priceValue); // Store price for further use
+                        } else {
+                            console.error('Invalid price value:', priceCell); // Log invalid price
+                        }
                     }
                 });
 
@@ -365,9 +446,15 @@
                         const pricePerDayInput = row.cells[7].querySelector('input[type="number"]');
                         const pricePerDay = parseFloat(pricePerDayInput.value);
 
-                        const timeDiff = returnDate - pickupDate;
-                        const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert milliseconds to days
-                        const totalPrice = daysRented * pricePerDay;
+                        const paymentStatus = row.querySelector('.payment-status').value; // Get the payment status
+                        let totalPrice;
+                        if (paymentStatus === 'not-paid') {
+                            totalPrice = 0; // Set total price to 0 if not paid
+                        } else {
+                            const timeDiff = returnDate - pickupDate;
+                            const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert milliseconds to days
+                            totalPrice = daysRented * pricePerDay;
+                        }
 
                         row.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
 
@@ -380,8 +467,13 @@
                     const rows = document.querySelectorAll('#statistics table.client tbody tr');
                     let totalIncome = 0;
                     rows.forEach(row => {
-                        const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
-                        totalIncome += parseFloat(priceCell) || 0; // Add to total income
+                        const paymentStatus = row.querySelector('.payment-status').value; // Get the payment status
+                        if (paymentStatus === 'not-paid') {
+                            totalPrice = 0; // Set total price to 0 if not paid
+                        } else {
+                            const priceCell = row.cells[8].textContent.replace(' KMF', '').replace(/,/g, ''); // Get price and remove ' KMF'
+                            totalIncome += parseFloat(priceCell) || 0; // Add to total income
+                        }
                     });
                     const totalIncomeLabel = document.getElementById('totalIncome');
                     totalIncomeLabel.textContent = `${formatNumberWithCommas(totalIncome)} KMF`;
@@ -420,7 +512,14 @@
                         const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                         const returnDate = new Date(returnDateInput.value);
                         const daysRented = Math.ceil((returnDate - pickupDate) / (3600 * 24));
-                        incomeData[key].totalIncome += daysRented * pricePerDay;
+                        const paymentStatus = row.querySelector('.payment-status').value; // Get the payment status
+                        let totalPrice;
+                        if (paymentStatus === 'not-paid') {
+                            totalPrice = 0; // Set total price to 0 if not paid
+                        } else {
+                            totalPrice = daysRented * pricePerDay;
+                        }
+                        incomeData[key].totalIncome += totalPrice;
                         incomeData[key].clientCount += 1; // Increment client count
                     });
 
@@ -495,87 +594,186 @@
             <script>
                 // Function to save client data to local storage
                 function saveClientData(clientData) {
-                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
                     clients.push(clientData);
                     localStorage.setItem('clients', JSON.stringify(clients));
                 }
-            
+
                 // Function to load client data from local storage
                 function loadClientData() {
-                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    const clientTable = document.getElementById('clientTable');
-                    clientTable.innerHTML = ''; // Clear existing rows
+                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clientTableBody = document.querySelector('#statistics table.client tbody');
+                    clientTableBody.innerHTML = ''; // Clear existing rows
+
                     clients.forEach(client => {
-                        const row = clientTable.insertRow();
-                        Object.entries(client).forEach(([key, value]) => {
-                            const cell = row.insertCell();
-                            if (key === 'returnDate') {
-                                const input = document.createElement('input');
-                                input.type = 'date';
-                                input.value = value;
-                                input.onchange = function() {
-                                    // Update the local storage when the return date is changed
-                                    client.returnDate = input.value;
-                                    // Recalculate total price
-                                    const pickupDate = new Date(client.pickupDate);
-                                    const returnDate = new Date(input.value);
-                                    const pricePerDay = client.pricePerDay;
-                                    client.totalPrice = (returnDate - pickupDate) / (1000 * 60 * 60 * 24) * pricePerDay;
-                                    updateClientData(client);
-                                };
-                                cell.appendChild(input);
-                            } else {
-                                cell.textContent = value;
-                            }
-                        });
-                        // Add delete button cell
-                        const deleteCell = row.insertCell();
-                        const deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Delete';
-                        deleteButton.style.backgroundColor = 'red';
-                        deleteButton.style.color = 'white';
-                        deleteButton.style.border = 'none';
-                        deleteButton.style.borderRadius = '5px';
-                        deleteButton.style.cursor = 'pointer';
-                        deleteButton.onclick = function() {
-                            deleteClientData(client);
-                        };
-                        deleteCell.appendChild(deleteButton);
+                        const newRow = document.createElement('tr');
+                        newRow.innerHTML = `
+                            <td>${client.fullName}</td>
+                            <td>${client.clientID}</td>
+                            <td>${client.phoneNumber}</td>
+                            <td>${client.vehicleModel}</td>
+                            <td>${client.vehiclePlate}</td>
+                            <td>${client.pickupDate}</td>
+                            <td><input type="date" value="${client.returnDate}" /></td>
+                            <td>${formatNumberWithCommas(client.pricePerDay)} KMF</td>
+                            <td>${formatNumberWithCommas(client.totalPrice)} KMF</td>
+                            <td><span class="status">${client.status}</span></td>
+                            <td><select class='payment-status'>
+                                <option value='paid' ${client.paymentStatus === 'paid' ? 'selected' : ''}>Paid</option>
+                                <option value='not-paid' ${client.paymentStatus === 'not-paid' ? 'selected' : ''}>Not Paid</option>
+                            </select></td>
+                            <td class="delete-column">
+                                <button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                            </td>
+                        `;
+
+                        // Add event listeners
+                        addRowEventListeners(newRow, client);
+                        
+                        // Add highlighting if needed
+                        if (client.status === 'Not Returned') {
+                            newRow.classList.add('highlight');
+                        }
+
+                        clientTableBody.appendChild(newRow);
+                    });
+
+                    // Update calculations
+                    updateTotalIncome();
+                    calculateMonthlyIncome();
+                    calculateCustomerRanking();
+                }
+
+                // Function to add event listeners to a row
+                function addRowEventListeners(row, clientData) {
+                    // Return date change listener
+                    const returnDateInput = row.querySelector('input[type="date"]');
+                    returnDateInput.addEventListener('change', function() {
+                        const pickupDate = new Date(clientData.pickupDate);
+                        const returnDate = new Date(this.value);
+                        const pricePerDay = clientData.pricePerDay;
+                        const paymentStatus = row.querySelector('.payment-status').value;
+                        
+                        let totalPrice;
+                        if (paymentStatus === 'not-paid') {
+                            totalPrice = 0;
+                        } else {
+                            const timeDiff = returnDate - pickupDate;
+                            const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                            totalPrice = daysRented * pricePerDay;
+                        }
+
+                        // Update row and client data
+                        row.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF';
+                        const statusCell = row.querySelector('.status');
+                        const currentDate = new Date('2025-01-14T11:45:06+03:00');
+                        
+                        if (returnDate <= currentDate) {
+                            statusCell.textContent = 'Returned';
+                            row.classList.remove('highlight');
+                            clientData.status = 'Returned';
+                        } else {
+                            statusCell.textContent = 'Not Returned';
+                            row.classList.add('highlight');
+                            clientData.status = 'Not Returned';
+                        }
+
+                        // Update client data in localStorage
+                        clientData.returnDate = this.value;
+                        clientData.totalPrice = totalPrice;
+                        updateClientInStorage(clientData);
+
+                        // Update calculations
+                        updateTotalIncome();
+                        calculateMonthlyIncome();
+                        calculateCustomerRanking();
+                    });
+
+                    // Payment status change listener
+                    const paymentStatusSelect = row.querySelector('.payment-status');
+                    paymentStatusSelect.addEventListener('change', function() {
+                        const paymentStatus = this.value;
+                        const pickupDate = new Date(clientData.pickupDate);
+                        const returnDate = new Date(returnDateInput.value);
+                        const pricePerDay = clientData.pricePerDay;
+                        
+                        let totalPrice;
+                        if (paymentStatus === 'not-paid') {
+                            totalPrice = 0;
+                        } else {
+                            const timeDiff = returnDate - pickupDate;
+                            const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                            totalPrice = daysRented * pricePerDay;
+                        }
+
+                        // Update row and client data
+                        row.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF';
+                        clientData.paymentStatus = paymentStatus;
+                        clientData.totalPrice = totalPrice;
+                        updateClientInStorage(clientData);
+
+                        // Update calculations
+                        updateTotalIncome();
+                    });
+
+                    // Delete button listener
+                    const deleteBtn = row.querySelector('.deleteBtn');
+                    deleteBtn.addEventListener('click', function() {
+                        if (confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
+                            deleteClientFromStorage(clientData);
+                            row.remove();
+                            updateTotalIncome();
+                            calculateMonthlyIncome();
+                            calculateCustomerRanking();
+                        }
                     });
                 }
 
-                // Function to update client data in local storage
-                function updateClientData(updatedClient) {
-                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    clients = clients.map(client => client.fullName === updatedClient.fullName && client.clientID === updatedClient.clientID ? updatedClient : client);
-                    localStorage.setItem('clients', JSON.stringify(clients));
-                    loadClientData(); // Reload data to reflect changes
+                // Function to update a client in localStorage
+                function updateClientInStorage(updatedClient) {
+                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const index = clients.findIndex(client => 
+                        client.clientID === updatedClient.clientID && 
+                        client.fullName === updatedClient.fullName
+                    );
+                    if (index !== -1) {
+                        clients[index] = updatedClient;
+                        localStorage.setItem('clients', JSON.stringify(clients));
+                    }
                 }
-            
-                // Function to delete client data from local storage
-                function deleteClientData(clientToDelete) {
-                    let clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    clients = clients.filter(client => JSON.stringify(client) !== JSON.stringify(clientToDelete));
-                    localStorage.setItem('clients', JSON.stringify(clients));
-                    loadClientData(); // Reload data to reflect changes
+
+                // Function to delete a client from localStorage
+                function deleteClientFromStorage(clientToDelete) {
+                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const filteredClients = clients.filter(client => 
+                        !(client.clientID === clientToDelete.clientID && 
+                          client.fullName === clientToDelete.fullName)
+                    );
+                    localStorage.setItem('clients', JSON.stringify(filteredClients));
                 }
-            
-                // Call loadClientData on page load
-                window.onload = loadClientData;
-            </script>
-            <script>
-                // Handle form submission to save client data
+
+                // Load client data when page loads
+                window.addEventListener('load', loadClientData);
+
+                // Handle form submission
                 document.getElementById('clientForm').addEventListener('submit', function(event) {
-                    event.preventDefault(); // Prevent default form submission
+                    event.preventDefault();
                     const formData = new FormData(event.target);
 
-                    // Get pickup date, return date, and price per day
                     const pickupDate = formData.get('pickupDate');
                     const returnDate = formData.get('returnDate');
                     const pricePerDay = parseFloat(formData.get('pricePerDay'));
 
                     // Calculate total price
-                    const totalPrice = (new Date(returnDate) - new Date(pickupDate)) / (1000 * 60 * 60 * 24) * pricePerDay;
+                    const paymentStatus = 'paid';
+                    let totalPrice;
+                    if (paymentStatus === 'not-paid') {
+                        totalPrice = 0;
+                    } else {
+                        const timeDiff = new Date(returnDate) - new Date(pickupDate);
+                        const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                        totalPrice = daysRented * pricePerDay;
+                    }
 
                     // Create client data object
                     const clientData = {
@@ -587,115 +785,280 @@
                         pickupDate: pickupDate,
                         returnDate: returnDate,
                         pricePerDay: pricePerDay,
-                        totalPrice: totalPrice, // Include total price
-                        status: 'Not Returned' // Example status
+                        totalPrice: totalPrice,
+                        status: 'Not Returned',
+                        paymentStatus: paymentStatus
                     };
 
-                    // Save client data to local storage
+                    // Save to localStorage
                     saveClientData(clientData);
 
-                    // Send data to the server
-                    fetch('/api/clients', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(clientData),
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Success:', data);
-                    })
-                    .catch((error) => console.error('Error:', error));
-                });
-            </script>
-            <script>
-                document.getElementById('clientForm').addEventListener('submit', function(event) {
-                    event.preventDefault(); // Prevent form submission
-                    const formData = new FormData(event.target);
-                    const pickupDate = new Date(formData.get('pickupDate')); // Get pickup date
-                    const returnDate = new Date(formData.get('returnDate')); // Get return date
-                    const pricePerDay = parseFloat(formData.get('pricePerDay')); // Get price per day
-
-                    const timeDiff = returnDate - pickupDate;
-                    const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Calculate number of days
-                    const totalPrice = daysRented * pricePerDay; // Calculate total price
-
+                    // Create and add new row
                     const newRow = document.createElement('tr');
                     newRow.innerHTML = `
-                        <td>${formData.get('fullName')}</td>
-                        <td>${formData.get('clientID')}</td>
-                        <td>${formData.get('phoneNumber')}</td>
-                        <td>${formData.get('vehicleModel')}</td>
-                        <td>${formData.get('vehiclePlate')}</td>
-                        <td>${formData.get('pickupDate')}</td>
-                        <td><input type="date" value="${formData.get('returnDate')}" /></td>
-                        <td>${formatNumberWithCommas(pricePerDay)} KMF</td>
-                        <td>${formatNumberWithCommas(totalPrice)} KMF</td>
-                        <td><span class="status">Not Returned</span></td>
-                        <td class="delete-column"><button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button></td>
+                        <td>${clientData.fullName}</td>
+                        <td>${clientData.clientID}</td>
+                        <td>${clientData.phoneNumber}</td>
+                        <td>${clientData.vehicleModel}</td>
+                        <td>${clientData.vehiclePlate}</td>
+                        <td>${clientData.pickupDate}</td>
+                        <td><input type="date" value="${clientData.returnDate}" /></td>
+                        <td>${formatNumberWithCommas(clientData.pricePerDay)} KMF</td>
+                        <td>${formatNumberWithCommas(clientData.totalPrice)} KMF</td>
+                        <td><span class="status">${clientData.status}</span></td>
+                        <td><select class='payment-status'>
+                            <option value='paid' selected>Paid</option>
+                            <option value='not-paid'>Not Paid</option>
+                        </select></td>
+                        <td class="delete-column">
+                            <button class="deleteBtn" style="background-color: red; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                        </td>
                     `;
 
-                    // Prepend the new row to the table
+                    // Add event listeners to the new row
+                    addRowEventListeners(newRow, clientData);
+
+                    // Add highlighting if needed
+                    if (clientData.status === 'Not Returned') {
+                        newRow.classList.add('highlight');
+                    }
+
+                    // Add to table
                     const clientTableBody = document.querySelector('#statistics table.client tbody');
                     clientTableBody.prepend(newRow);
 
-                    // Highlight the row if status is Not Returned
-                    const statusCell = newRow.querySelector('.status');
-                    if (statusCell.textContent === 'Not Returned') {
-                        newRow.classList.add('highlight');
-                    }
-                    
-                    // Clear the input fields after adding the client
+                    // Clear form
                     event.target.reset();
 
-                    // Add event listener for return date change
-                    const returnDateInput = newRow.querySelector('input[type="date"]');
-                    returnDateInput.addEventListener('change', function() {
-                        const pickupDate = new Date(formData.get('pickupDate')); // Get pickup date
-                        const returnDate = new Date(returnDateInput.value);
-                        const pricePerDay = parseFloat(formData.get('pricePerDay')); // Get price per day
-                        const timeDiff = returnDate - pickupDate;
-                        const daysRented = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Calculate number of days
-                        const totalPrice = daysRented * pricePerDay; // Calculate total price
-                        newRow.cells[8].textContent = formatNumberWithCommas(totalPrice) + ' KMF'; // Update price cell
-
-                        // Update status based on return date
-                        const currentDate = new Date('2025-01-05T19:39:35+03:00'); // Use the provided current date
-                        if (returnDate <= currentDate) {
-                            statusCell.textContent = 'Returned';
-                            newRow.classList.remove('highlight');
-                        } else {
-                            statusCell.textContent = 'Not Returned';
-                            newRow.classList.add('highlight');
-                        }
-
-                        updateTotalIncome(); // Update total income
-                        calculateMonthlyIncome(); // Update monthly income
-                        calculateCustomerRanking(); // Update customer ranking
-                    });
-
-                    // Add event listener for delete button
-                    newRow.querySelector('.deleteBtn').addEventListener('click', function() {
-                        newRow.remove(); // Remove the row from the table
-                        updateTotalIncome(); // Update total income
-                        calculateMonthlyIncome(); // Update monthly income
-                        calculateCustomerRanking(); // Update customer ranking
-                    });
-
-                    // Update total income
+                    // Update calculations
                     updateTotalIncome();
-                    calculateMonthlyIncome(); // Update monthly income
-                    calculateCustomerRanking(); // Update customer ranking
+                    calculateMonthlyIncome();
+                    calculateCustomerRanking();
                 });
             </script>
             <script>
-                function printPage() {
-                    // Get current date
-                    const currentDate = new Date().toLocaleDateString();
-                    document.getElementById('printedDate').innerText = currentDate;
+                // Function to save expense data to localStorage
+                function saveExpenseData(expenseData) {
+                    localStorage.setItem('expenseData', JSON.stringify(expenseData));
+                }
 
-                    window.print();
+                // Function to load expense data from localStorage
+                function loadExpenseData() {
+                    const expenseData = JSON.parse(localStorage.getItem('expenseData')) || [];
+                    const tbody = document.querySelector('#expenseTable tbody');
+                    tbody.innerHTML = '';
+                    let total = 0;
+
+                    expenseData.forEach(expense => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${expense.date}</td>
+                            <td>${expense.motif}</td>
+                            <td>${expense.comment}</td>
+                            <td>${expense.price.toLocaleString('en-US')} KMF</td>
+                            <td><button onclick="deleteExpenseRow(this)" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Delete</button></td>
+                        `;
+                        total += expense.price;
+                    });
+
+                    document.getElementById('totalExpense').innerText = total.toLocaleString('en-US') + ' KMF';
+                    updateTotalRestant();
+                }
+
+                // Function to delete expense row
+                function deleteExpenseRow(button) {
+                    const row = button.parentNode.parentNode;
+                    const tbody = row.parentNode;
+                    const expenseData = JSON.parse(localStorage.getItem('expenseData')) || [];
+                    
+                    // Remove the expense from the array
+                    expenseData.splice(row.rowIndex - 1, 1);
+                    
+                    // Save updated data
+                    saveExpenseData(expenseData);
+                    
+                    // Remove row from table
+                    tbody.removeChild(row);
+                    
+                    // Update totals
+                    updateTotalExpense();
+                    updateTotalRestant();
+                }
+
+                document.getElementById('addExpenseButton').onclick = function() {
+                    var date = document.getElementById('expenseDate').value;
+                    var motif = document.getElementById('expenseMotif').value;
+                    var comment = document.getElementById('expenseComment').value;
+                    var price = parseFloat(document.getElementById('expensePrice').value);
+
+                    if (!date || !motif || !price) {
+                        alert('Please fill in all required fields (Date, Motif, and Price)');
+                        return;
+                    }
+
+                    var table = document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+                    var row = table.insertRow();
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>${motif}</td>
+                        <td>${comment}</td>
+                        <td>${price.toLocaleString('en-US')} KMF</td>
+                        <td><button onclick="deleteExpenseRow(this)" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Delete</button></td>
+                    `;
+                    
+                    // Save to localStorage
+                    const expenseData = JSON.parse(localStorage.getItem('expenseData')) || [];
+                    expenseData.push({ date, motif, comment, price });
+                    saveExpenseData(expenseData);
+
+                    // Clear form
+                    document.getElementById('expenseDate').value = '';
+                    document.getElementById('expenseMotif').value = '';
+                    document.getElementById('expenseComment').value = '';
+                    document.getElementById('expensePrice').value = '';
+
+                    // Update totals
+                    updateTotalExpense();
+                    updateTotalRestant();
+                };
+
+                // Load expense data when page loads
+                window.addEventListener('load', loadExpenseData);
+            </script>
+            <script>
+                // Auto-fill comment for Balance precedent
+                document.getElementById('balanceMotif').addEventListener('change', function() {
+                    const commentInput = document.getElementById('balanceComment');
+                    if (this.value === 'Balance precedent') {
+                        // Get yesterday's date
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        
+                        // Format the date as DD/MM/YYYY
+                        const day = String(yesterday.getDate()).padStart(2, '0');
+                        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+                        const year = yesterday.getFullYear();
+                        
+                        // Set the comment
+                        commentInput.value = `Balance Restant du ${day}/${month}/${year}`;
+                        commentInput.placeholder = "Comment";
+                    } else if (this.value === 'Emprunt d\'argent') {
+                        commentInput.value = '';
+                        commentInput.placeholder = "Enter Name";
+                    } else {
+                        // Clear the comment if any other motif is selected
+                        commentInput.value = '';
+                        commentInput.placeholder = "Comment";
+                    }
+                });
+
+                // Balance Add functionality
+                document.getElementById('balanceAddForm').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    
+                    // Get form values
+                    const date = document.getElementById('balanceDate').value;
+                    const motif = document.getElementById('balanceMotif').value;
+                    const comment = document.getElementById('balanceComment').value;
+                    const balance = document.getElementById('balanceAmount').value;
+                    
+                    // Create new table row
+                    const tableBody = document.getElementById('balanceAddTableBody');
+                    const newRow = document.createElement('tr');
+                    const timestamp = new Date().getTime(); // Add unique identifier
+                    newRow.setAttribute('data-id', timestamp);
+                    newRow.innerHTML = `
+                        <td style="border: 1px solid #dee2e6; padding: 12px;">${date}</td>
+                        <td style="border: 1px solid #dee2e6; padding: 12px;">${motif}</td>
+                        <td style="border: 1px solid #dee2e6; padding: 12px;">${comment}</td>
+                        <td style="border: 1px solid #dee2e6; padding: 12px;">${formatNumberWithCommas(balance)} KMF</td>
+                        <td style="border: 1px solid #dee2e6; padding: 12px;">
+                            <button onclick="deleteBalanceRow(this)" class="delete-btn" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Delete</button>
+                        </td>
+                    `;
+                    
+                    // Add new row to table
+                    tableBody.appendChild(newRow);
+                    
+                    // Save to localStorage
+                    saveBalanceData({
+                        id: timestamp,
+                        date,
+                        motif,
+                        comment,
+                        balance
+                    });
+                    
+                    // Reset form
+                    event.target.reset();
+                });
+
+                // Function to delete balance row
+                function deleteBalanceRow(button) {
+                    if (confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
+                        const row = button.closest('tr');
+                        const rowId = parseInt(row.getAttribute('data-id'));
+                        
+                        // Remove from localStorage
+                        const existingData = JSON.parse(localStorage.getItem('balanceData') || '[]');
+                        const updatedData = existingData.filter(item => item.id !== rowId);
+                        localStorage.setItem('balanceData', JSON.stringify(updatedData));
+                        
+                        // Remove from table
+                        row.remove();
+                    }
+                }
+
+                // Function to save balance data to localStorage
+                function saveBalanceData(balanceData) {
+                    const existingData = JSON.parse(localStorage.getItem('balanceData') || '[]');
+                    existingData.push(balanceData);
+                    localStorage.setItem('balanceData', JSON.stringify(existingData));
+                }
+
+                // Function to load balance data from localStorage
+                function loadBalanceData() {
+                    const balanceData = JSON.parse(localStorage.getItem('balanceData') || '[]');
+                    const tableBody = document.getElementById('balanceAddTableBody');
+                    
+                    balanceData.forEach(data => {
+                        const newRow = document.createElement('tr');
+                        newRow.setAttribute('data-id', data.id);
+                        newRow.innerHTML = `
+                            <td style="border: 1px solid #dee2e6; padding: 12px;">${data.date}</td>
+                            <td style="border: 1px solid #dee2e6; padding: 12px;">${data.motif}</td>
+                            <td style="border: 1px solid #dee2e6; padding: 12px;">${data.comment}</td>
+                            <td style="border: 1px solid #dee2e6; padding: 12px;">${formatNumberWithCommas(data.balance)} KMF</td>
+                            <td style="border: 1px solid #dee2e6; padding: 12px;">
+                                <button onclick="deleteBalanceRow(this)" class="delete-btn" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Delete</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(newRow);
+                    });
+                }
+
+                // Load balance data when page loads
+                window.addEventListener('load', loadBalanceData);
+            </script>
+            <script>
+                // Function to clear all data
+                function clearAllData() {
+                    if (confirm('Are you sure you want to clear all data? This will remove all clients, balances, and expenses. This action cannot be undone.')) {
+                        // Clear localStorage
+                        localStorage.clear();
+                        
+                        // Clear all tables
+                        document.getElementById('balanceAddTableBody').innerHTML = '';
+                        document.querySelector('.client tbody').innerHTML = '';
+                        document.querySelector('#expenseTable tbody').innerHTML = '';
+                        
+                        // Reset total income
+                        document.getElementById('totalIncome').textContent = '0 KMF';
+                        
+                        // Refresh the page to reset all states
+                        window.location.reload();
+                    }
                 }
             </script>
         </section>
