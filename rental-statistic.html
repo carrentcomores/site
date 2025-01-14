@@ -595,14 +595,44 @@
             <script>
                 // Function to save client data to local storage
                 function saveClientData(clientData) {
-                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clients = JSON.parse(localStorage.getItem('clientData')) || [];
                     clients.push(clientData);
-                    localStorage.setItem('clients', JSON.stringify(clients));
+                    localStorage.setItem('clientData', JSON.stringify(clients));
+                    // Update customer ranking after adding new client
+                    updateCustomerRanking();
                 }
 
+                // Function to delete client from storage
+                function deleteClientFromStorage(clientToDelete) {
+                    const clients = JSON.parse(localStorage.getItem('clientData')) || [];
+                    const filteredClients = clients.filter(client => 
+                        !(client.clientID === clientToDelete.clientID && 
+                          client.fullName === clientToDelete.fullName)
+                    );
+                    localStorage.setItem('clientData', JSON.stringify(filteredClients));
+                    // Update customer ranking after deleting client
+                    updateCustomerRanking();
+                }
+
+                // Function to update a client in localStorage
+                function updateClientInStorage(updatedClient) {
+                    const clients = JSON.parse(localStorage.getItem('clientData')) || [];
+                    const index = clients.findIndex(client => 
+                        client.clientID === updatedClient.clientID && 
+                        client.fullName === updatedClient.fullName
+                    );
+                    if (index !== -1) {
+                        clients[index] = updatedClient;
+                        localStorage.setItem('clientData', JSON.stringify(clients));
+                        // Update customer ranking after updating client
+                        updateCustomerRanking();
+                    }
+                }
+            </script>
+            <script>
                 // Function to load client data from local storage
                 function loadClientData() {
-                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clients = JSON.parse(localStorage.getItem('clientData')) || [];
                     const clientTableBody = document.querySelector('#statistics table.client tbody');
                     clientTableBody.innerHTML = ''; // Clear existing rows
 
@@ -730,29 +760,54 @@
                     });
                 }
 
-                // Function to update a client in localStorage
-                function updateClientInStorage(updatedClient) {
-                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    const index = clients.findIndex(client => 
-                        client.clientID === updatedClient.clientID && 
-                        client.fullName === updatedClient.fullName
-                    );
-                    if (index !== -1) {
-                        clients[index] = updatedClient;
-                        localStorage.setItem('clients', JSON.stringify(clients));
+                // Function to update customer ranking table
+                function updateCustomerRanking() {
+                    const clientData = JSON.parse(localStorage.getItem('clientData')) || [];
+                    const customerFrequency = {};
+                    
+                    // Count rental frequency for each customer
+                    clientData.forEach(client => {
+                        const fullName = client.fullName;
+                        if (fullName) { // Make sure we have a valid name
+                            customerFrequency[fullName] = (customerFrequency[fullName] || 0) + 1;
+                        }
+                    });
+
+                    // Convert to array and sort by frequency
+                    const sortedCustomers = Object.entries(customerFrequency)
+                        .map(([name, frequency]) => ({ name, frequency }))
+                        .sort((a, b) => b.frequency - a.frequency);
+
+                    // Update the table
+                    const rankingTableBody = document.getElementById('customerRankingBody');
+                    rankingTableBody.innerHTML = ''; // Clear existing rows
+
+                    if (sortedCustomers.length === 0) {
+                        // If no customers, show a message
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td colspan="3" style="border: 1px solid #4CAF50; padding: 8px; text-align: center;">No customer data available</td>
+                        `;
+                        rankingTableBody.appendChild(row);
+                    } else {
+                        // Show customer rankings
+                        sortedCustomers.forEach((customer, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${index + 1}</td>
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.name}</td>
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.frequency}</td>
+                            `;
+                            rankingTableBody.appendChild(row);
+                        });
                     }
                 }
 
-                // Function to delete a client from localStorage
-                function deleteClientFromStorage(clientToDelete) {
-                    const clients = JSON.parse(localStorage.getItem('clients')) || [];
-                    const filteredClients = clients.filter(client => 
-                        !(client.clientID === clientToDelete.clientID && 
-                          client.fullName === clientToDelete.fullName)
-                    );
-                    localStorage.setItem('clients', JSON.stringify(filteredClients));
-                }
-
+                // Call updateCustomerRanking when page loads and when client data changes
+                window.addEventListener('load', updateCustomerRanking);
+                document.addEventListener('clientDataChanged', updateCustomerRanking);
+            </script>
+            <script>
                 // Load client data when page loads
                 window.addEventListener('load', loadClientData);
 
@@ -1166,13 +1221,15 @@
             <script>
                 // Function to update customer ranking table
                 function updateCustomerRanking() {
-                    const clientData = JSON.parse(localStorage.getItem('clients')) || [];
+                    const clientData = JSON.parse(localStorage.getItem('clientData')) || [];
                     const customerFrequency = {};
                     
                     // Count rental frequency for each customer
                     clientData.forEach(client => {
                         const fullName = client.fullName;
-                        customerFrequency[fullName] = (customerFrequency[fullName] || 0) + 1;
+                        if (fullName) { // Make sure we have a valid name
+                            customerFrequency[fullName] = (customerFrequency[fullName] || 0) + 1;
+                        }
                     });
 
                     // Convert to array and sort by frequency
@@ -1184,15 +1241,25 @@
                     const rankingTableBody = document.getElementById('customerRankingBody');
                     rankingTableBody.innerHTML = ''; // Clear existing rows
 
-                    sortedCustomers.forEach((customer, index) => {
+                    if (sortedCustomers.length === 0) {
+                        // If no customers, show a message
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td style="border: 1px solid #4CAF50; padding: 8px;">${index + 1}</td>
-                            <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.name}</td>
-                            <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.frequency}</td>
+                            <td colspan="3" style="border: 1px solid #4CAF50; padding: 8px; text-align: center;">No customer data available</td>
                         `;
                         rankingTableBody.appendChild(row);
-                    });
+                    } else {
+                        // Show customer rankings
+                        sortedCustomers.forEach((customer, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${index + 1}</td>
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.name}</td>
+                                <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.frequency}</td>
+                            `;
+                            rankingTableBody.appendChild(row);
+                        });
+                    }
                 }
 
                 // Call updateCustomerRanking when page loads and when client data changes
