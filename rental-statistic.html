@@ -93,6 +93,9 @@
             outline: none; /* Remove default outline */
         }
         @media print {
+            #printButton {
+                display: none !important;
+            }
             button[onclick="printPage()"] {
                 display: none; /* Hide the print button when printing */
             }
@@ -151,7 +154,7 @@
     </header>
     <main>
         <section id="statistics">
-            <button onclick="printPage()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px;">Print</button>
+            <button id="printButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px;">Print</button>
             <button onclick="clearAllData()" id="clearAllDataBtn" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); margin-top: 20px; margin-bottom: 10px; margin-left: 10px;">Clear All Data</button>
             <h2>Balance Add</h2>
             <form id="balanceAddForm" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
@@ -229,18 +232,15 @@
                 </tbody>
             </table>
             <h2>Customer Ranking</h2>
-            <table class="customer-ranking" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
-                <thead>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
+                <thead style="background-color: #f8f9fa;">
                     <tr>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Full Name</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Phone Number</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Number of Rentals</th>
-                        <th style="border: 1px solid #4CAF50; padding: 8px;">Duration</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px; text-align: left;">Rank</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px; text-align: left;">Full Name</th>
+                        <th style="border: 1px solid #4CAF50; padding: 8px; text-align: left;">Number of Rentals</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Customer ranking data will be populated here -->
-                </tbody>
+                <tbody id="customerRankingBody"></tbody>
             </table>
             <h2>Expense Report</h2>
             <div id="expenseForm">
@@ -502,10 +502,14 @@
                     rows.forEach(row => {
                         const pickupDate = new Date(row.cells[5].textContent);
                         const paymentStatus = row.querySelector('.payment-status').value;
-                        const priceText = row.cells[8].textContent;
-                        const price = parseFloat(priceText.replace(/[^\d.-]/g, '')); // Remove non-numeric characters
+                        let price = 0;
                         
-                        if ((paymentStatus === 'paid' || paymentStatus === 'Paid') && !isNaN(price)) {
+                        if (paymentStatus === 'paid' || paymentStatus === 'Paid') {
+                            const priceText = row.cells[8].textContent;
+                            price = parseFloat(priceText.replace(/[^\d.-]/g, '')); // Remove non-numeric characters
+                        }
+
+                        if (!isNaN(price)) {
                             const year = pickupDate.getFullYear();
                             const month = pickupDate.toLocaleString('default', { month: 'long' });
                             const key = `${year}-${month}`;
@@ -515,7 +519,8 @@
                                     year: year,
                                     month: month,
                                     totalIncome: 0,
-                                    clientCount: 0
+                                    clientCount: 0,
+                                    averagePerClient: 0
                                 };
                             }
 
@@ -524,10 +529,18 @@
                         }
                     });
 
-                    // Sort data by year and month
+                    // Calculate averages and sort data
                     const sortedData = Object.values(monthlyData)
+                        .map(data => {
+                            data.averagePerClient = data.clientCount > 0 
+                                ? data.totalIncome / data.clientCount 
+                                : 0;
+                            return data;
+                        })
                         .sort((a, b) => {
+                            // Sort by year descending
                             if (b.year !== a.year) return b.year - a.year;
+                            // Then by month (using month index for proper sorting)
                             const monthsOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
                                               'July', 'August', 'September', 'October', 'November', 'December'];
                             return monthsOrder.indexOf(b.month) - monthsOrder.indexOf(a.month);
@@ -576,14 +589,8 @@
                     }
                 }
 
-                // Call calculateMonthlyIncome when needed
-                window.addEventListener('load', calculateMonthlyIncome);
-                
-                // Update monthly table when client data changes
-                document.addEventListener('clientDataChanged', calculateMonthlyIncome);
-                
-                // Update when payment status changes
-                document.addEventListener('paymentStatusChanged', calculateMonthlyIncome);
+                // Call calculateMonthlyIncome when needed (after adding/updating/deleting clients)
+                // This is already being called in the appropriate places
             </script>
             <script>
                 // Function to save client data to local storage
@@ -641,7 +648,7 @@
                 // Function to add event listeners to a row
                 function addRowEventListeners(row, clientData) {
                     // Return date change listener
-                    const returnDateInput = row.querySelector('input[type="date"]');
+                    const returnDateInput = row.cells[6].querySelector('input[type="date"]');
                     returnDateInput.addEventListener('change', function() {
                         const pickupDate = new Date(clientData.pickupDate);
                         const returnDate = new Date(this.value);
@@ -922,20 +929,22 @@
             <script>
                 // Function to save balance data to localStorage
                 function saveBalanceData(balanceData) {
-                    const existingData = JSON.parse(localStorage.getItem('balanceData') || '[]');
+                    const existingData = JSON.parse(localStorage.getItem('balanceData')) || [];
                     existingData.push(balanceData);
                     localStorage.setItem('balanceData', JSON.stringify(existingData));
                 }
 
                 // Function to load balance data from localStorage
                 function loadBalanceData() {
-                    const balanceData = JSON.parse(localStorage.getItem('balanceData') || '[]');
+                    const balanceData = JSON.parse(localStorage.getItem('balanceData')) || [];
                     const tableBody = document.getElementById('balanceAddTableBody');
                     
+                    tableBody.innerHTML = ''; // Clear existing rows
+
                     balanceData.forEach(data => {
-                        const newRow = document.createElement('tr');
-                        newRow.setAttribute('data-id', data.id);
-                        newRow.innerHTML = `
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', data.id);
+                        row.innerHTML = `
                             <td style="border: 1px solid #dee2e6; padding: 12px;">${data.date}</td>
                             <td style="border: 1px solid #dee2e6; padding: 12px;">${data.motif}</td>
                             <td style="border: 1px solid #dee2e6; padding: 12px;">${data.comment}</td>
@@ -944,27 +953,63 @@
                                 <button onclick="deleteBalanceRow(this)" class="delete-btn" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Delete</button>
                             </td>
                         `;
-                        tableBody.appendChild(newRow);
+                        tableBody.appendChild(row);
                     });
+
+                    // Update total restant after loading balance data
+                    updateTotalRestant();
                 }
 
                 // Function to delete balance row
                 function deleteBalanceRow(button) {
-                    if (confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
+                    if (confirm('Are you sure you want to delete this balance entry?')) {
                         const row = button.closest('tr');
-                        const rowId = parseInt(row.getAttribute('data-id'));
+                        const rowId = row.getAttribute('data-id');
                         
                         // Remove from localStorage
-                        const existingData = JSON.parse(localStorage.getItem('balanceData') || '[]');
-                        const updatedData = existingData.filter(item => item.id !== rowId);
-                        localStorage.setItem('balanceData', JSON.stringify(updatedData));
+                        const balanceData = JSON.parse(localStorage.getItem('balanceData')) || [];
+                        const updatedBalanceData = balanceData.filter(item => item.id !== parseInt(rowId));
+                        localStorage.setItem('balanceData', JSON.stringify(updatedBalanceData));
                         
-                        // Remove from table
+                        // Remove row from table
                         row.remove();
+                        
+                        // Update total restant
+                        updateTotalRestant();
                     }
                 }
 
-                // Function to handle balance form submission
+                // Load balance data when page loads
+                window.addEventListener('load', loadBalanceData);
+            </script>
+            <script>
+                // Function to calculate total balance from Balance Table
+                function calculateTotalBalance() {
+                    let totalBalance = 0;
+                    const balanceRows = document.querySelectorAll('#balanceAddTableBody tr');
+                    
+                    balanceRows.forEach(row => {
+                        const balanceText = row.cells[3].textContent;
+                        const balance = parseFloat(balanceText.replace(/[^\d.-]/g, '')); // Remove non-numeric characters except decimal and negative
+                        if (!isNaN(balance)) {
+                            totalBalance += balance;
+                        }
+                    });
+                    
+                    return totalBalance;
+                }
+
+                // Modified updateTotalRestant function to include balance
+                function updateTotalRestant() {
+                    const totalIncome = parseFloat(document.getElementById('totalIncome').innerText.replace(/ KMF/, '').replace(/,/g, ''));
+                    const totalExpense = parseFloat(document.getElementById('totalExpense').innerText.replace(/ KMF/, '').replace(/,/g, ''));
+                    const totalBalance = calculateTotalBalance();
+                    
+                    const totalRestant = totalIncome - totalExpense + totalBalance;
+                    document.getElementById('summaryTotalRestant').innerText = totalRestant.toLocaleString('en-US') + ' KMF';
+                }
+
+                // Update the Balance Add form submission to call updateTotalRestant
                 document.getElementById('balanceAddForm').addEventListener('submit', function(event) {
                     event.preventDefault();
                     
@@ -977,7 +1022,7 @@
                     // Create new table row
                     const tableBody = document.getElementById('balanceAddTableBody');
                     const newRow = document.createElement('tr');
-                    const timestamp = new Date().getTime(); // Add unique identifier
+                    const timestamp = new Date().getTime();
                     newRow.setAttribute('data-id', timestamp);
                     newRow.innerHTML = `
                         <td style="border: 1px solid #dee2e6; padding: 12px;">${date}</td>
@@ -989,21 +1034,71 @@
                         </td>
                     `;
                     
+                    // Add new row to table
+                    tableBody.appendChild(newRow);
+                    
                     // Save to localStorage
-                    saveBalanceData({
+                    const balanceData = {
                         id: timestamp,
                         date,
                         motif,
                         comment,
-                        balance
-                    });
+                        balance: parseFloat(balance)
+                    };
+                    saveBalanceData(balanceData);
                     
-                    // Reset form
-                    event.target.reset();
+                    // Clear form
+                    this.reset();
+                    
+                    // Update total restant
+                    updateTotalRestant();
                 });
 
-                // Load balance data when page loads
-                window.addEventListener('load', loadBalanceData);
+                // Modify the deleteBalanceRow function to update total restant
+                function deleteBalanceRow(button) {
+                    if (confirm('Are you sure you want to delete this balance entry?')) {
+                        const row = button.closest('tr');
+                        const rowId = row.getAttribute('data-id');
+                        
+                        // Remove from localStorage
+                        const balanceData = JSON.parse(localStorage.getItem('balanceData')) || [];
+                        const updatedBalanceData = balanceData.filter(item => item.id !== parseInt(rowId));
+                        localStorage.setItem('balanceData', JSON.stringify(updatedBalanceData));
+                        
+                        // Remove row from table
+                        row.remove();
+                        
+                        // Update total restant
+                        updateTotalRestant();
+                    }
+                }
+
+                // Auto-fill comment for Balance precedent
+                document.getElementById('balanceMotif').addEventListener('change', function() {
+                    const commentInput = document.getElementById('balanceComment');
+                    if (this.value === 'Balance precedent') {
+                        // Get yesterday's date
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        
+                        // Format the date as DD/MM/YYYY
+                        const day = String(yesterday.getDate()).padStart(2, '0');
+                        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+                        const year = yesterday.getFullYear();
+                        
+                        // Set the comment
+                        commentInput.value = `Balance Restant du ${day}/${month}/${year}`;
+                        commentInput.placeholder = "Comment";
+                    } else if (this.value === 'Emprunt d\'argent') {
+                        commentInput.value = '';
+                        commentInput.placeholder = "Enter Name";
+                    } else {
+                        // Clear the comment if any other motif is selected
+                        commentInput.value = '';
+                        commentInput.placeholder = "Comment";
+                    }
+                });
             </script>
             <script>
                 // Function to clear all data
@@ -1024,6 +1119,85 @@
                         window.location.reload();
                     }
                 }
+            </script>
+            <script>
+                // Print functionality
+                function printPage() {
+                    // Get current date and format it
+                    const currentDate = new Date('2025-01-14T11:58:39+03:00');
+                    const formattedDate = currentDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    // Update the printed date
+                    document.getElementById('printedDate').innerText = formattedDate;
+
+                    // Hide the print and delete buttons before printing
+                    const deleteButtons = document.querySelectorAll('.deleteBtn, .delete-btn');
+                    deleteButtons.forEach(button => {
+                        button.style.display = 'none';
+                    });
+
+                    // Hide any other elements you don't want to print
+                    const nonPrintableElements = document.querySelectorAll('.non-printable');
+                    nonPrintableElements.forEach(element => {
+                        element.style.display = 'none';
+                    });
+
+                    // Print the page
+                    window.print();
+
+                    // Restore the buttons after printing
+                    deleteButtons.forEach(button => {
+                        button.style.display = 'block';
+                    });
+
+                    // Restore other hidden elements
+                    nonPrintableElements.forEach(element => {
+                        element.style.display = '';
+                    });
+                }
+
+                document.getElementById('printButton').onclick = null;
+                document.getElementById('printButton').addEventListener('click', printPage);
+            </script>
+            <script>
+                // Function to update customer ranking table
+                function updateCustomerRanking() {
+                    const clientData = JSON.parse(localStorage.getItem('clients')) || [];
+                    const customerFrequency = {};
+                    
+                    // Count rental frequency for each customer
+                    clientData.forEach(client => {
+                        const fullName = client.fullName;
+                        customerFrequency[fullName] = (customerFrequency[fullName] || 0) + 1;
+                    });
+
+                    // Convert to array and sort by frequency
+                    const sortedCustomers = Object.entries(customerFrequency)
+                        .map(([name, frequency]) => ({ name, frequency }))
+                        .sort((a, b) => b.frequency - a.frequency);
+
+                    // Update the table
+                    const rankingTableBody = document.getElementById('customerRankingBody');
+                    rankingTableBody.innerHTML = ''; // Clear existing rows
+
+                    sortedCustomers.forEach((customer, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td style="border: 1px solid #4CAF50; padding: 8px;">${index + 1}</td>
+                            <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.name}</td>
+                            <td style="border: 1px solid #4CAF50; padding: 8px;">${customer.frequency}</td>
+                        `;
+                        rankingTableBody.appendChild(row);
+                    });
+                }
+
+                // Call updateCustomerRanking when page loads and when client data changes
+                window.addEventListener('load', updateCustomerRanking);
+                document.addEventListener('clientDataChanged', updateCustomerRanking);
             </script>
         </section>
     </main>
