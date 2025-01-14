@@ -183,7 +183,6 @@
                 <tbody id="balanceAddTableBody">
                 </tbody>
             </table>
-            <h2>Total Income: <span id="totalIncome">0 KMF</span></h2>
             <h2>Client Activity</h2>
             <form id="clientForm">
                 <input type="text" name="fullName" placeholder="Full Name" required style="padding: 10px; border: 2px solid #4CAF50; border-radius: 5px; font-size: 16px; width: 100%; max-width: 300px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); transition: border-color 0.3s; margin-bottom: 10px;" onfocus="this.style.borderColor='#45a049';" onblur="this.style.borderColor='#4CAF50';" />
@@ -217,6 +216,9 @@
                     <!-- Client data will be populated here -->
                 </tbody>
             </table>
+            <div id="totalIncomeContainer" style="margin-top: 20px; text-align: right; font-size: 20px;">
+                <strong>Total Income:</strong> <span id="totalIncome">0 KMF</span>
+            </div>
             <h2>Monthly Income</h2>
             <table class="monthlyincome" style="width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #f9f9f9;">
                 <thead>
